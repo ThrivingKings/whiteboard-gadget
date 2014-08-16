@@ -1,0 +1,27 @@
+{
+  "name": "versal-gadget-theme",
+  "version": "0.2.0",
+  "homepage": "https://github.com/Versal/gadget-theme",
+  "authors": [
+    "Versal Team <support@versal.com>"
+  ],
+  "description": "Versal gadget theme",
+  "keywords": [
+    "Versal",
+    "gadget",
+    "css"
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "normalize-css": "~3.0.1"
+  },
+  "_release": "0.2.0",
+  "_resolution": {
+    "type": "version",
+    "tag": "v0.2.0",
+    "commit": "1db0b634fef4c18e121b7f8976ebf3de3c1dafb2"
+  },
+  "_source": "git://github.com/Versal/gadget-theme.git",
+  "_target": "~0.2.0",
+  "_originalSource": "versal-gadget-theme"
+}
