@@ -1,6 +1,9 @@
+// Instantiate player
 var player = new VersalPlayerAPI();
 
+// Gadget base
 var Gadget = function() {
+  // Instance storage
   this.Playbacks = [];
   this.Texts = [];
   this.Backgrounds = [];
@@ -10,6 +13,7 @@ var Gadget = function() {
 
   var self = this;
 
+  // Author settings
   player.setPropertySheetAttributes({priveleges: { type: "Checkboxes",
     options:
     [
@@ -33,11 +37,11 @@ var Gadget = function() {
   player.on('assetSelected', function(assetData){
       //assetUrl is the output
       var assetUrl = player.assetUrl(assetData.asset.representations[0].id);
-
+      // find current slide to apply background image
       var $current = $('div.content').find('.slide.current');
-
+      // add to instance storage
       self.Backgrounds[$current.data('slide')] = assetUrl;
-
+      // update background
       $current.find('canvas').css('background-image', 'url('+assetUrl+')');
 
     }.bind(this));
@@ -67,6 +71,7 @@ Gadget.prototype.attributesChanged = function(attributes) {
 
 };
 
+// Helper function
 Gadget.prototype.makeText = function(obj, i) {
 
   var $text = $('<div class="text-box">').css('top', obj.y).css('left', obj.x).data('i', i);
@@ -78,10 +83,12 @@ Gadget.prototype.makeText = function(obj, i) {
   return $text;
 };
 
+// Gadget render
 Gadget.prototype.render = function() {
   
   var self = this;
 
+  // Using underscore templates
   var template = _.template($('body').find('.tpl').html(), {
     //editable: editable,
     //learner: learnerObject
@@ -90,19 +97,23 @@ Gadget.prototype.render = function() {
   // Load template
   $('div.content').html(template);
 
+  // This is used throughout
   var $el = $('div.content');
   var existingSlides = self.attributes.slides || [];
 
+  // Set defaults
   var learnerObject = {
     canDraw: false,
     canRecord: false
   };
 
+  // Update defaults with stored data
   for(i=0; i<(self.attributes.priveleges || []).length; i++) {
     if(self.attributes.priveleges[i]=="can_draw") learnerObject.canDraw = true;
     if(self.attributes.priveleges[i]=="can_record") learnerObject.canRecord = true;
   }
 
+  // Toggle elements based on settings
   $('.js-can-draw').toggle(self.editable || learnerObject.canDraw);
   $('.js-can-record').toggle(self.editable || learnerObject.canRecord);
 
@@ -114,18 +125,20 @@ Gadget.prototype.render = function() {
 
     for(i=0; i<existingSlides.length; i++) {
 
+      // Simple fail safe
       if(existingSlides[i].imageData != undefined) {
 
         var thiscanvas;
         var $slide;
 
+        // Make sure the first slide is the current slide
         if(i==0) {
 
           $slide = $el.find('.slide.current');
           thiscanvas = $slide.find('.sketchpad')[0];
 
         } else {
-
+          // Prepare secondary slides by hiding and showing proper controls
           $slide = $el.find('.slide.current').clone();
 
           self.canvas($slide, (self.editable || (!self.editable && learnerObject.canDraw)));
@@ -151,6 +164,7 @@ Gadget.prototype.render = function() {
           thiscanvas = $slide.find('.sketchpad')[0];
         }
 
+        // Add the stored background
         if(existingSlides[i].background) {
           
           self.Backgrounds[i+1] = existingSlides[i].background;
@@ -158,6 +172,7 @@ Gadget.prototype.render = function() {
           $slide.find('canvas').css('background-image', 'url('+existingSlides[i].background+')');
         }
 
+        // Add any stored text
         if(existingSlides[i].texts) {
 
           self.Texts[i+1] = existingSlides[i].texts;
@@ -171,6 +186,7 @@ Gadget.prototype.render = function() {
           }
         }
 
+        // If a recording has been stored, add it to the instance and show the play button
         if(existingSlides[i].playback) {
 
           $slide.find('.btn.play').removeClass('disabled');
@@ -178,6 +194,7 @@ Gadget.prototype.render = function() {
           self.Playbacks[i+1] = existingSlides[i].playback;
         }
 
+        // Add the stored canvas drawing (I think this is a data hog)
         var thisctx = thiscanvas.getContext('2d');
 
         var newData = thisctx.getImageData(0,0,700,350);
@@ -196,6 +213,7 @@ Gadget.prototype.render = function() {
   // Adding a slide
   $el.on("click", '.add.new-slide', function(e) {
 
+    // Clone the old slide, create the new, then clear the new
     var $old = $el.find('.slide.current');
     var $new = $old.clone();
     var current = $el.find('.slides .slide').length+1;
@@ -228,6 +246,7 @@ Gadget.prototype.render = function() {
   // Removing a slide
   .on("click", '.remove-slide', function(e) {
 
+    // Remove the elements from the DOM and update the slide counts
     $el.find('.slide.current').remove();
 
     var i = $(this).closest('.slide').data('slide');
@@ -252,6 +271,7 @@ Gadget.prototype.render = function() {
   // Traversing slides
   .on("click", '.traverse.backward', function(e) {
 
+    // The transition is handled via CSS so just updating current class here
     if(!$(this).hasClass('disabled')) {
 
       var $slides = $el.find('.slides .slide');
@@ -267,6 +287,7 @@ Gadget.prototype.render = function() {
   })
   .on("click", '.traverse.forward', function(e) {
 
+    // The transition is handled via CSS so just updating current class here
     if(!$(this).hasClass('disabled')) {
 
       var $slides = $el.find('.slides .slide');
@@ -288,6 +309,7 @@ Gadget.prototype.toggleEdit = function(data) {
 
   var self = this;
 
+  // Loops through and store all of the slide data for each
   if(!data.editable) {
 
     var slides = [];
@@ -296,9 +318,10 @@ Gadget.prototype.toggleEdit = function(data) {
 
       var canvas = $(this).find('.sketchpad')[0];
       var ctx = canvas.getContext('2d');
-
+      // Saving full canvas image data so it can be drawn on after toggling
       var imageData = ctx.getImageData(0,0,700,350);
-
+      // This is tricky because you can't sent canvas data cross origin
+      // So saving a separate object to be used for the canvas redraw
       var dataObj = {height: imageData.height, width: imageData.width, raw: imageData.data};
 
       var playback = (self.Playbacks[$(this).data('slide')] != undefined ? self.Playbacks[$(this).data('slide')] : null);
@@ -309,8 +332,9 @@ Gadget.prototype.toggleEdit = function(data) {
 
       slides.push({imageData: dataObj, playback: playback, texts: texts, background: background});
     });
-
+    // Save it!
     player.setAttributes({slides: slides});
+    // Flag to prevent double saving (and overwriting)
     this.attributed = false;
   }
 
@@ -318,6 +342,7 @@ Gadget.prototype.toggleEdit = function(data) {
   this.render();
 };
 
+// Handles each canvas instance
 Gadget.prototype.canvas = function($el, editable){
 
   var self = this;
@@ -328,13 +353,7 @@ Gadget.prototype.canvas = function($el, editable){
   var lineW = $el.find('.selected .circle').data('width'),
       fillC = $el.find('.selected .color').data('color');
 
-  function midPointBtw(p1, p2) {
-    return {
-      x: p1.x + (p2.x - p1.x) / 2,
-      y: p1.y + (p2.y - p1.y) / 2
-    };
-  }
-
+  // A whole load of presets and flags
   var canvas = $el.find('.sketchpad')[0];
   var ctx = canvas.getContext('2d');
 
@@ -360,8 +379,10 @@ Gadget.prototype.canvas = function($el, editable){
   var PlayingTO;
   var lastFill;
 
+  // The beginning of a draw
   canvas.onmousedown = function(event) {
 
+    // Make sure they can draw
     if(Playing || !editable) return;
 
     isDrawing = true;
@@ -397,7 +418,9 @@ Gadget.prototype.canvas = function($el, editable){
     points.push({ x: x, y: y });
   };
 
+  // Drawing
   canvas.onmousemove = function(event) {
+    
     if (!isDrawing || Playing || !editable) return;
 
     var cx,cy;
@@ -425,6 +448,7 @@ Gadget.prototype.canvas = function($el, editable){
     var p1 = points[0];
     var p2 = points[1];
 
+    // Erasing is a different action completely
     if(Erasing) { 
       ctx.globalCompositeOperation = 'destination-out'; 
       WhiteboardPlayback[0].stroke.globalCompositeOperation = 'destination-out' 
@@ -448,18 +472,21 @@ Gadget.prototype.canvas = function($el, editable){
     ctx.stroke();
   };
 
+  // All done drawing
   canvas.onmouseup = function() {
     isDrawing = false;
     points.length = 0;
     memCtx.clearRect(0, 0, w, h);
     memCtx.drawImage(canvas, 0, 0);
 
+    // If it was recording, start the pause action
     if(CanvasRecording) {
       WhiteboardPlayback[0].end_time = Date.now();
       WhiteboardPlayback.unshift({type:"pause", start_time: Date.now(), end_time: null});
     }
   };
 
+  // Drawing function used during playback
   function Draw(p1, p2, p3, stroke, delay) {
 
     window.setTimeout(function() {
@@ -486,6 +513,7 @@ Gadget.prototype.canvas = function($el, editable){
     }, delay);
   }
 
+  // Manages the playback of a set of actions
   function Playback(obj) {
 
     var wi = obj.length;
@@ -537,9 +565,10 @@ Gadget.prototype.canvas = function($el, editable){
     }
   }
 
-  // button actions
+  // Canvas event listeners
   $el.on("click", '.btn.record', function(e) {
 
+    // Toggles recording on or off
     if(!$(this).hasClass('disabled')) {
       if(CanvasRecording) {
 
@@ -587,6 +616,7 @@ Gadget.prototype.canvas = function($el, editable){
   })
   .on("click", '.btn.play', function(e) {
 
+    // Playing of a playback. Will be disabled if a playback isn't present
     if(!$(this).hasClass('disabled')) {
 
       Playing = true;
@@ -605,6 +635,7 @@ Gadget.prototype.canvas = function($el, editable){
   })
   .on("click", '.btn.clear', function(e) {
 
+    // Clearing the canvas clears the drawing, background, texts, and playbacks
     if(!$(this).hasClass('disabled')) {
 
       canvas.width = canvas.width;
@@ -622,6 +653,7 @@ Gadget.prototype.canvas = function($el, editable){
   })
   .on("click", '.grouped li', function(e) {
 
+    // These are the stroke and color actions
     $(this).closest('.grouped').find('li').removeClass('selected');
     $(this).addClass('selected');
 
@@ -637,6 +669,7 @@ Gadget.prototype.canvas = function($el, editable){
   })
   .on("click", '.erase', function(e) {
 
+    // Eraser controls
     if($(this).closest('li').hasClass('selected')) {
 
       $(this).closest('li').removeClass('selected');
@@ -658,12 +691,15 @@ Gadget.prototype.canvas = function($el, editable){
   })
   .on("click", '.add.image', function(e) {
 
+    // Adding or editing the background image of a slide
     player.requestAsset({type:"image", attribute: "slide_"+$el.data('slide')+"_image"});
 
     e.stopImmediatePropagation();
   })
   .on("click", '.add.text', function(e) {
 
+    // Adding individual boxes of text
+    // This also controls the 'blurring' of text boxes, as well as removal by deleting all of the text
     var Adding = false;
 
     if(!Playing) {
@@ -762,6 +798,8 @@ Gadget.prototype.canvas = function($el, editable){
   })
   .on("click", '.text-box', function(e) {
 
+    // Editing of a text box after it has been added
+
     var $me = $(this);
 
     if(!isDrawing && !Playing) {
@@ -802,4 +840,5 @@ Gadget.prototype.canvas = function($el, editable){
   });
 };
 
+// Fire that gadget!
 new Gadget();
