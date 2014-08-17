@@ -10,6 +10,7 @@ var Gadget = function() {
   this.attributes = {};
   this.attributed = false;
   this.audioRecorder = null;
+  this.SelectingImageFor = null;
 
   var self = this;
 
@@ -37,12 +38,19 @@ var Gadget = function() {
   player.on('assetSelected', function(assetData){
       //assetUrl is the output
       var assetUrl = player.assetUrl(assetData.asset.representations[0].id);
-      // find current slide to apply background image
-      var $current = $('div.content').find('.slide.current');
-      // add to instance storage
-      self.Backgrounds[$current.data('slide')] = assetUrl;
-      // update background
-      $current.find('canvas').css('background-image', 'url('+assetUrl+')');
+      
+      if(self.SelectingImageFor) {
+
+        // find current slide to apply background image
+        var $current = $('div.content').find('.slide[data-slide="'+self.SelectingImageFor+'"]');
+        // add to instance storage
+        self.Backgrounds[$current.data('slide')] = assetUrl;
+        // update background
+        $current.find('canvas').css('background-image', 'url('+assetUrl+')');
+
+        self.SelectingImageFor = null;
+
+      }
 
     }.bind(this));
 
@@ -145,7 +153,9 @@ Gadget.prototype.render = function() {
 
           $el.find('.slides').append( $slide ).css('width', $el.find('.slides').width()+704);
 
-          $slide.removeClass('current').attr('data-slide', i+1).removeAttr('style').find('.text.current-slide').html(i+1);
+          $slide.find('canvas').removeAttr('style');
+
+          $slide.removeClass('current').attr('data-slide', i+1).find('.text.current-slide').html(i+1);
 
           $($el.find('.slides .slide')[i-1]).find('.traverse.forward').removeClass('disabled');
 
@@ -220,7 +230,7 @@ Gadget.prototype.render = function() {
 
     $old.removeClass('current');
 
-    $new.addClass('current').attr('data-slide', current).removeAttr('style');
+    $new.addClass('current').attr('data-slide', current);
 
     $el.find('.slides').append( $new ).css('width', $el.find('.slides').width()+704);
 
@@ -237,7 +247,7 @@ Gadget.prototype.render = function() {
 
     $new.find('.text-box').remove();
 
-    $new.find('canvas').css('background-image', '');
+    $new.find('canvas').removeAttr('style');
 
     self.canvas($el.find('.slide.current'), (self.editable || (!self.editable && learnerObject.canDraw)));
 
@@ -697,6 +707,8 @@ Gadget.prototype.canvas = function($el, editable){
     e.stopImmediatePropagation();
   })
   .on("click", '.add.image', function(e) {
+
+    self.SelectingImageFor = $el.data('slide');
 
     // Adding or editing the background image of a slide
     player.requestAsset({type:"image", attribute: "slide_"+$el.data('slide')+"_image"});
