@@ -145,7 +145,7 @@ Gadget.prototype.render = function() {
 
           $el.find('.slides').append( $slide ).css('width', $el.find('.slides').width()+704);
 
-          $slide.removeClass('current').data('slide', i+1).find('.text.current-slide').html(i+1);
+          $slide.removeClass('current').attr('data-slide', i+1).removeAttr('style').find('.text.current-slide').html(i+1);
 
           $($el.find('.slides .slide')[i-1]).find('.traverse.forward').removeClass('disabled');
 
@@ -220,7 +220,7 @@ Gadget.prototype.render = function() {
 
     $old.removeClass('current');
 
-    $new.addClass('current').attr('data-slide', current);
+    $new.addClass('current').attr('data-slide', current).removeAttr('style');
 
     $el.find('.slides').append( $new ).css('width', $el.find('.slides').width()+704);
 
@@ -451,7 +451,7 @@ Gadget.prototype.canvas = function($el, editable){
     // Erasing is a different action completely
     if(Erasing) { 
       ctx.globalCompositeOperation = 'destination-out'; 
-      WhiteboardPlayback[0].stroke.globalCompositeOperation = 'destination-out' 
+      if(CanvasRecording) WhiteboardPlayback[0].stroke.globalCompositeOperation = 'destination-out';
     }
 
     ctx.beginPath();
@@ -484,6 +484,13 @@ Gadget.prototype.canvas = function($el, editable){
       WhiteboardPlayback[0].end_time = Date.now();
       WhiteboardPlayback.unshift({type:"pause", start_time: Date.now(), end_time: null});
     }
+  };
+
+  function midPointBtw(p1, p2) {
+    return {
+      x: p1.x + (p2.x - p1.x) / 2,
+      y: p1.y + (p2.y - p1.y) / 2
+    };
   };
 
   // Drawing function used during playback
