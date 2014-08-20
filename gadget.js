@@ -4,6 +4,7 @@ var player = new VersalPlayerAPI();
 // Gadget base
 var Gadget = function() {
   // Instance storage
+  this.Points = [];
   this.Playbacks = [];
   this.Texts = [];
   this.Backgrounds = [];
@@ -15,13 +16,13 @@ var Gadget = function() {
   var self = this;
 
   // Author settings
-  player.setPropertySheetAttributes({priveleges: { type: "Checkboxes",
+  /*player.setPropertySheetAttributes({priveleges: { type: "Checkboxes",
     options:
     [
       {val: "can_draw", label: "Can draw"},
       {val: "can_record", label: "Can record"}
     ]
-  }});
+  }});*/
 
   // Asset URL template override
   player.assetUrlTemplate = player.assetUrlTemplate ||
@@ -116,10 +117,10 @@ Gadget.prototype.render = function() {
   };
 
   // Update defaults with stored data
-  for(i=0; i<(self.attributes.priveleges || []).length; i++) {
+  /*for(i=0; i<(self.attributes.priveleges || []).length; i++) {
     if(self.attributes.priveleges[i]=="can_draw") learnerObject.canDraw = true;
     if(self.attributes.priveleges[i]=="can_record") learnerObject.canRecord = true;
-  }
+  }*/
 
   // Toggle elements based on settings
   $('.js-can-draw').toggle(self.editable || learnerObject.canDraw);
@@ -134,10 +135,12 @@ Gadget.prototype.render = function() {
     for(i=0; i<existingSlides.length; i++) {
 
       // Simple fail safe
-      if(existingSlides[i].imageData != undefined) {
+      if(existingSlides[i].points != undefined) {
 
         var thiscanvas;
         var $slide;
+        var memCanvas = document.createElement('canvas');
+        var memCtx = memCanvas.getContext('2d');
 
         // Make sure the first slide is the current slide
         if(i==0) {
@@ -175,7 +178,7 @@ Gadget.prototype.render = function() {
         }
 
         // Add the stored background
-        if(existingSlides[i].background) {
+        if(existingSlides[i].background != undefined) {
           
           self.Backgrounds[i+1] = existingSlides[i].background;
 
@@ -183,7 +186,7 @@ Gadget.prototype.render = function() {
         }
 
         // Add any stored text
-        if(existingSlides[i].texts) {
+        if(existingSlides[i].texts != undefined) {
 
           self.Texts[i+1] = existingSlides[i].texts;
 
@@ -197,23 +200,33 @@ Gadget.prototype.render = function() {
         }
 
         // If a recording has been stored, add it to the instance and show the play button
-        if(existingSlides[i].playback) {
+        if(existingSlides[i].playback != undefined) {
 
           $slide.find('.btn.play').removeClass('disabled');
 
           self.Playbacks[i+1] = existingSlides[i].playback;
         }
 
-        // Add the stored canvas drawing (I think this is a data hog)
-        var thisctx = thiscanvas.getContext('2d');
+        if(existingSlides[i].points.length) {
 
-        var newData = thisctx.getImageData(0,0,700,350);
+          self.Points[i+1] = existingSlides[i].points;
 
-        for (var a = 0; a < existingSlides[i].imageData.raw.length; a++) {
-          newData.data[a] = existingSlides[i].imageData.raw[a];
+          for (var e = 0, len = existingSlides[i].points.length; e < len; e++) {
+
+            for(var p = 1; p<existingSlides[i].points[e].point.length; p++) {
+              
+              self.Draw(
+                thiscanvas.getContext('2d'), 
+                existingSlides[i].points[e].point[p-1], 
+                existingSlides[i].points[e].point[p], 
+                existingSlides[i].points[e].point[p+1], 
+                existingSlides[i].points[e].point[p+2], 
+                existingSlides[i].points[e].stroke, 
+                0
+              );
+            }
+          }
         }
-
-        thisctx.putImageData(newData,0,0);
 
         $el.find('.text.total-slides').html(existingSlides.length);
       }
@@ -326,22 +339,19 @@ Gadget.prototype.toggleEdit = function(data) {
 
     $('.slides .slide').each(function() {
 
-      var canvas = $(this).find('.sketchpad')[0];
-      var ctx = canvas.getContext('2d');
-      // Saving full canvas image data so it can be drawn on after toggling
-      var imageData = ctx.getImageData(0,0,700,350);
-      // This is tricky because you can't sent canvas data cross origin
-      // So saving a separate object to be used for the canvas redraw
-      var dataObj = {height: imageData.height, width: imageData.width, raw: imageData.data};
+      var id = $(this).data('slide');
 
-      var playback = (self.Playbacks[$(this).data('slide')] != undefined ? self.Playbacks[$(this).data('slide')] : null);
+      var points = (self.Points[id] != undefined ? self.Points[id] : null);
 
-      var texts = (self.Texts[$(this).data('slide')] != undefined ? self.Texts[$(this).data('slide')] : null);
+      var playback = (self.Playbacks[id] != undefined ? self.Playbacks[id] : null);
 
-      var background = (self.Backgrounds[$(this).data('slide')] != undefined ? self.Backgrounds[$(this).data('slide')] : null);
+      var texts = (self.Texts[id] != undefined ? self.Texts[id] : null);
 
-      slides.push({imageData: dataObj, playback: playback, texts: texts, background: background});
+      var background = (self.Backgrounds[id] != undefined ? self.Backgrounds[id] : null);
+
+      slides.push({points: points, playback: playback, texts: texts, background: background});
     });
+
     // Save it!
     player.setAttributes({slides: slides});
     // Flag to prevent double saving (and overwriting)
@@ -350,6 +360,45 @@ Gadget.prototype.toggleEdit = function(data) {
 
   this.editable = data.editable
   this.render();
+};
+
+// Drawing function used during playback
+Gadget.prototype.Draw = function(ctx, p1, p2, p3, p4, stroke, delay) {
+
+  var self = this;
+
+  window.setTimeout(function() {
+
+    ctx.lineWidth = stroke.w;
+    ctx.fillStyle = stroke.fill;
+    ctx.strokeStyle = stroke.fill;
+    ctx.globalCompositeOperation = stroke.globalCompositeOperation;
+    ctx.beginPath();
+    ctx.moveTo(p1.x, p1.y);
+
+    var midPoint = self.midPointBtw(p1, p2);
+    ctx.quadraticCurveTo(p1.x, p1.y, midPoint.x, midPoint.y);
+
+    ctx.lineTo(p1.x, p1.y);
+    ctx.stroke();
+
+    if(p3 && p4) {
+      var midPoint2 = self.midPointBtw(p3, p4);
+      ctx.beginPath();
+      ctx.moveTo(p3.x, p3.y);
+      ctx.quadraticCurveTo(p3.x, p3.y, midPoint2.x, midPoint2.y);
+      ctx.lineTo(p4.x, p4.y);
+      ctx.stroke();
+    }
+
+  }, delay);
+};
+
+Gadget.prototype.midPointBtw = function(p1, p2) {
+  return {
+    x: p1.x + (p2.x - p1.x) / 2,
+    y: p1.y + (p2.y - p1.y) / 2
+  };
 };
 
 // Handles each canvas instance
@@ -389,6 +438,8 @@ Gadget.prototype.canvas = function($el, editable){
   var PlayingTO;
   var lastFill;
 
+  if(self.Points[$el.data('slide')] == undefined) self.Points[$el.data('slide')] = [];
+
   // The beginning of a draw
   canvas.onmousedown = function(event) {
 
@@ -426,6 +477,14 @@ Gadget.prototype.canvas = function($el, editable){
     }
 
     points.push({ x: x, y: y });
+
+    if(Erasing) {
+
+      self.Points[$el.data('slide')].push({ stroke: {w:lineW, fill:fillC, globalCompositeOperation:"source-over"}, point: [{x: x, y: y}] });
+    } else {
+
+      self.Points[$el.data('slide')].unshift({ stroke: {w:lineW, fill:fillC, globalCompositeOperation:"source-over"}, point: [{x: x, y: y}] });
+    }
   };
 
   // Drawing
@@ -460,8 +519,18 @@ Gadget.prototype.canvas = function($el, editable){
 
     // Erasing is a different action completely
     if(Erasing) { 
-      ctx.globalCompositeOperation = 'destination-out'; 
-      if(CanvasRecording) WhiteboardPlayback[0].stroke.globalCompositeOperation = 'destination-out';
+
+      ctx.globalCompositeOperation = 'destination-out';
+
+      self.Points[$el.data('slide')][self.Points[$el.data('slide')].length-1].point.push({ x: cx, y: cy});
+
+      self.Points[$el.data('slide')][self.Points[$el.data('slide')].length-1].stroke.globalCompositeOperation = 'destination-out';
+
+      if(CanvasRecording) {
+        WhiteboardPlayback[0].stroke.globalCompositeOperation = 'destination-out';
+      }
+    } else {
+      self.Points[$el.data('slide')][0].point.push({ x: cx, y: cy});
     }
 
     ctx.beginPath();
@@ -470,7 +539,7 @@ Gadget.prototype.canvas = function($el, editable){
     for (var i = 1, len = points.length; i < len; i++) {
       // we pick the point between pi+1 & pi+2 as the
       // end point and p1 as our control point
-      var midPoint = midPointBtw(p1, p2);
+      var midPoint = self.midPointBtw(p1, p2);
       ctx.quadraticCurveTo(p1.x, p1.y, midPoint.x, midPoint.y);
       p1 = points[i];
       p2 = points[i+1];
@@ -495,40 +564,6 @@ Gadget.prototype.canvas = function($el, editable){
       WhiteboardPlayback.unshift({type:"pause", start_time: Date.now(), end_time: null});
     }
   };
-
-  function midPointBtw(p1, p2) {
-    return {
-      x: p1.x + (p2.x - p1.x) / 2,
-      y: p1.y + (p2.y - p1.y) / 2
-    };
-  };
-
-  // Drawing function used during playback
-  function Draw(p1, p2, p3, stroke, delay) {
-
-    window.setTimeout(function() {
-
-      ctx.lineWidth = stroke.w;
-      ctx.fillStyle = stroke.fill;
-      ctx.strokeStyle = stroke.fill;
-      ctx.globalCompositeOperation = stroke.globalCompositeOperation;
-      ctx.beginPath();
-      ctx.moveTo(p1.x, p1.y);
-
-      var midPoint = midPointBtw(p1, p2);
-      ctx.quadraticCurveTo(p1.x, p1.y, midPoint.x, midPoint.y);
-
-      ctx.lineTo(p1.x, p1.y);
-
-      if(p3) {
-        var midPoint2 = midPointBtw(p2, p3);
-        ctx.quadraticCurveTo(p2.x, p2.y, midPoint2.x, midPoint2.y);
-        ctx.lineTo(p2.x, p2.y);
-      }
-
-      ctx.stroke();
-    }, delay);
-  }
 
   // Manages the playback of a set of actions
   function Playback(obj) {
@@ -557,7 +592,7 @@ Gadget.prototype.canvas = function($el, editable){
       if(obj[wi].type=="draw") {
 
         for (var i = 1, len = obj[wi].points.length; i < len; i++) {
-          Draw(obj[wi].points[i-1], obj[wi].points[i], obj[wi].points[i+1], obj[wi].stroke, (duration/obj[wi].points.length)*i);
+          self.Draw(ctx, obj[wi].points[i-1], obj[wi].points[i], obj[wi].points[i], obj[wi].points[i+1], obj[wi].stroke, (duration/obj[wi].points.length)*i);
         }
       }
 
@@ -661,6 +696,7 @@ Gadget.prototype.canvas = function($el, editable){
       self.Playbacks[$el.data("slide")] = [];
       self.Texts[$el.data("slide")] = [];
       self.Backgrounds[$el.data("slide")] = [];
+      self.Points[$el.data("slide")] = [];
       $el.find('canvas').css('background-image', '');
       $el.find('.text-box').remove();
       $el.find('.btn.play').addClass('disabled');
