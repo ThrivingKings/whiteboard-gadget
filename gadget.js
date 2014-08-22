@@ -39,21 +39,27 @@ var Gadget = function() {
   player.on('assetSelected', function(assetData){
       //assetUrl is the output
       var assetUrl = player.assetUrl(assetData.asset.representations[0].id);
-      
+
       if(self.SelectingImageFor) {
 
         // find current slide to apply background image
-        var $current = $('div.content').find('.slide[data-slide="'+self.SelectingImageFor+'"]');
+        var $current = $('div.content').find('.slide.current');
         // add to instance storage
-        self.Backgrounds[$current.data('slide')] = assetUrl;
+        if(self.Backgrounds[self.SelectingImageFor] === undefined) {
+
+          self.Backgrounds[self.SelectingImageFor] = { url: assetUrl, size: "cover", label: "Cover" };
+        } else {
+
+          self.Backgrounds[self.SelectingImageFor].url = assetUrl;
+        }
         // update background
-        $current.find('canvas').css('background-image', 'url('+assetUrl+')');
+        $current.find('.sketchpad').css('background-image', 'url('+assetUrl+')');
 
         self.SelectingImageFor = null;
 
       }
 
-    }.bind(this));
+    });
 
   // Handle edit toggling
   window.addEventListener('message', function(e){
@@ -178,15 +184,17 @@ Gadget.prototype.render = function() {
         }
 
         // Add the stored background
-        if(existingSlides[i].background != undefined) {
+        if(existingSlides[i].background != undefined && existingSlides[i].background.url != undefined) {
           
           self.Backgrounds[i+1] = existingSlides[i].background;
 
-          $slide.find('canvas').css('background-image', 'url('+existingSlides[i].background+')');
+          $slide.find('canvas').css('background-image', 'url('+existingSlides[i].background.url+')').css('background-size', existingSlides[i].background.size);
+
+          $slide.find('.image-size .text').html(existingSlides[i].background.label);
         }
 
         // Add any stored text
-        if(existingSlides[i].texts != undefined) {
+        if(existingSlides[i].texts != undefined && existingSlides[i].texts.length) {
 
           self.Texts[i+1] = existingSlides[i].texts;
 
@@ -200,7 +208,7 @@ Gadget.prototype.render = function() {
         }
 
         // If a recording has been stored, add it to the instance and show the play button
-        if(existingSlides[i].playback != undefined) {
+        if(existingSlides[i].playback != undefined && existingSlides[i].playback.length) {
 
           $slide.find('.btn.play').removeClass('disabled');
 
@@ -323,6 +331,35 @@ Gadget.prototype.render = function() {
     }
 
     e.stopImmediatePropagation();
+  })
+  .on("click", '.image-size', function(e) {
+
+    var $image = $(this);
+
+    var $submenu = $image.closest('li').find('.sub-menu');
+
+    $submenu.toggleClass('open');
+
+    $submenu.on("click", 'li', function(e) {
+
+      if(!$(this).hasClass('title')) {
+
+        $el.find('.slide.current .sketchpad').css('background-size', $(this).data('size'));
+
+        $image.data('size', $(this).data('size'));
+
+        $image.find('.text').html( $(this).html() );
+
+        self.Backgrounds[$el.find('.slide.current').attr('data-slide')].size = $(this).data('size');
+        self.Backgrounds[$el.find('.slide.current').attr('data-slide')].label = $(this).html();
+
+        $submenu.toggleClass('open');
+      }
+
+      e.stopImmediatePropagation();
+    });
+
+    e.stopImmediatePropagation();
   });
 
   player.setHeight($('body').outerHeight());
@@ -339,7 +376,7 @@ Gadget.prototype.toggleEdit = function(data) {
 
     $('.slides .slide').each(function() {
 
-      var id = $(this).data('slide');
+      var id = $(this).attr('data-slide');
 
       var points = (self.Points[id] != undefined ? self.Points[id] : null);
 
@@ -693,11 +730,11 @@ Gadget.prototype.canvas = function($el, editable){
       canvas.width = canvas.width;
       memCanvas.width = canvas.width;
       WhiteboardPlayback = [];
-      self.Playbacks[$el.data("slide")] = [];
-      self.Texts[$el.data("slide")] = [];
-      self.Backgrounds[$el.data("slide")] = [];
-      self.Points[$el.data("slide")] = [];
-      $el.find('canvas').css('background-image', '');
+      self.Playbacks[$el.attr("data-slide")] = null;
+      self.Texts[$el.attr("data-slide")] = null;
+      self.Backgrounds[$el.attr("data-slide")] = null;
+      self.Points[$el.attr("data-slide")] = null;
+      $el.find('.sketchpad').css('background-image', '');
       $el.find('.text-box').remove();
       $el.find('.btn.play').addClass('disabled');
 
@@ -744,10 +781,10 @@ Gadget.prototype.canvas = function($el, editable){
   })
   .on("click", '.add.image', function(e) {
 
-    self.SelectingImageFor = $el.data('slide');
+    self.SelectingImageFor = $el.attr('data-slide');
 
     // Adding or editing the background image of a slide
-    player.requestAsset({type:"image", attribute: "slide_"+$el.data('slide')+"_image"});
+    player.requestAsset({type:"image", attribute: "slide_"+$el.attr('data-slide')+"_image"});
 
     e.stopImmediatePropagation();
   })
