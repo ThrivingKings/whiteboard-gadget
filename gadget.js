@@ -52,6 +52,7 @@ var Gadget = function() {
 
           self.Backgrounds[self.SelectingImageFor].url = assetUrl;
         }
+
         // update background
         $current.find('.sketchpad').css('background-image', 'url('+assetUrl+')');
 
@@ -98,6 +99,40 @@ Gadget.prototype.makeText = function(obj, i) {
   return $text;
 };
 
+Gadget.prototype.toggleEdit = function(data) {
+
+  var self = this;
+
+  // Loops through and store all of the slide data for each
+  if(!data.editable) {
+
+    var slides = [];
+
+    $('.slides .slide').each(function() {
+
+      var id = $(this).attr('data-slide');
+
+      var points = (self.Points[id] != undefined ? self.Points[id] : null);
+
+      var playback = (self.Playbacks[id] != undefined ? self.Playbacks[id] : null);
+
+      var texts = (self.Texts[id] != undefined ? self.Texts[id] : null);
+
+      var background = (self.Backgrounds[id] != undefined ? self.Backgrounds[id] : null);
+
+      slides.push({points: points, playback: playback, texts: texts, background: background});
+    });
+
+    // Save it!
+    player.setAttributes({slides: slides});
+    // Flag to prevent double saving (and overwriting)
+    this.attributed = false;
+  }
+
+  this.editable = data.editable
+  this.render();
+};
+
 // Gadget render
 Gadget.prototype.render = function() {
   
@@ -134,6 +169,11 @@ Gadget.prototype.render = function() {
 
   // Initialize first slide's canvas
   self.canvas($el.find('.slide.current'), (self.editable || (!self.editable && learnerObject.canDraw)));
+
+  self.Points = [];
+  self.Playbacks = [];
+  self.Texts = [];
+  self.Backgrounds = [];
 
   // Load any saved slides
   if(existingSlides && existingSlides.length) {
@@ -208,7 +248,7 @@ Gadget.prototype.render = function() {
         }
 
         // If a recording has been stored, add it to the instance and show the play button
-        if(existingSlides[i].playback != undefined && existingSlides[i].playback.length) {
+        if(existingSlides[i].playback != undefined && existingSlides[i].playback.playback.length) {
 
           $slide.find('.btn.play').removeClass('disabled');
 
@@ -219,7 +259,9 @@ Gadget.prototype.render = function() {
 
           self.Points[i+1] = existingSlides[i].points;
 
-          for (var e = 0, len = existingSlides[i].points.length; e < len; e++) {
+          var e = len = existingSlides[i].points.length;
+
+          while(e--) {
 
             for(var p = 1; p<existingSlides[i].points[e].point.length; p++) {
               
@@ -365,40 +407,6 @@ Gadget.prototype.render = function() {
   player.setHeight($('body').outerHeight());
 };
 
-Gadget.prototype.toggleEdit = function(data) {
-
-  var self = this;
-
-  // Loops through and store all of the slide data for each
-  if(!data.editable) {
-
-    var slides = [];
-
-    $('.slides .slide').each(function() {
-
-      var id = $(this).attr('data-slide');
-
-      var points = (self.Points[id] != undefined ? self.Points[id] : null);
-
-      var playback = (self.Playbacks[id] != undefined ? self.Playbacks[id] : null);
-
-      var texts = (self.Texts[id] != undefined ? self.Texts[id] : null);
-
-      var background = (self.Backgrounds[id] != undefined ? self.Backgrounds[id] : null);
-
-      slides.push({points: points, playback: playback, texts: texts, background: background});
-    });
-
-    // Save it!
-    player.setAttributes({slides: slides});
-    // Flag to prevent double saving (and overwriting)
-    this.attributed = false;
-  }
-
-  this.editable = data.editable
-  this.render();
-};
-
 // Drawing function used during playback
 Gadget.prototype.Draw = function(ctx, p1, p2, p3, p4, stroke, delay) {
 
@@ -469,16 +477,16 @@ Gadget.prototype.canvas = function($el, editable){
   var points = [];
 
   var CanvasRecording = false;
-  var WhiteboardPlayback = [];
+  var WhiteboardPlayback = self.Playbacks[$el.data('slide')] || [];
   var Erasing = false;
   var Playing = false;
   var PlayingTO;
   var lastFill;
 
-  if(self.Points[$el.data('slide')] == undefined) self.Points[$el.data('slide')] = [];
-
   // The beginning of a draw
   canvas.onmousedown = function(event) {
+
+    if(self.Points[$el.data('slide')] == undefined || !self.Points[$el.data('slide')].length) self.Points[$el.data('slide')] = [];
 
     // Make sure they can draw
     if(Playing || !editable) return;
@@ -517,7 +525,7 @@ Gadget.prototype.canvas = function($el, editable){
 
     if(Erasing) {
 
-      self.Points[$el.data('slide')].push({ stroke: {w:lineW, fill:fillC, globalCompositeOperation:"source-over"}, point: [{x: x, y: y}] });
+      self.Points[$el.data('slide')].unshift({ stroke: {w:lineW, fill:fillC, globalCompositeOperation:"destination-out"}, point: [] });
     } else {
 
       self.Points[$el.data('slide')].unshift({ stroke: {w:lineW, fill:fillC, globalCompositeOperation:"source-over"}, point: [{x: x, y: y}] });
@@ -559,9 +567,11 @@ Gadget.prototype.canvas = function($el, editable){
 
       ctx.globalCompositeOperation = 'destination-out';
 
-      self.Points[$el.data('slide')][self.Points[$el.data('slide')].length-1].point.push({ x: cx, y: cy});
+      self.Points[$el.data('slide')][0].fillC = fillC;
 
-      self.Points[$el.data('slide')][self.Points[$el.data('slide')].length-1].stroke.globalCompositeOperation = 'destination-out';
+      self.Points[$el.data('slide')][0].point.push({ x: cx, y: cy});
+
+      self.Points[$el.data('slide')][0].stroke.globalCompositeOperation = 'destination-out';
 
       if(CanvasRecording) {
         WhiteboardPlayback[0].stroke.globalCompositeOperation = 'destination-out';
