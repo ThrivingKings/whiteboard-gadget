@@ -35,37 +35,11 @@ var Gadget = function() {
   // Doesn't seem to work:
   //player.on('editableChanged', this.toggleEdit.bind(this));
   player.on('attributesChanged', this.attributesChanged.bind(this));
-  // Asset (image) has been selected/uploaded
-  player.on('assetSelected', function(assetData){
-      //assetUrl is the output
-      var assetUrl = player.assetUrl(assetData.asset.representations[0].id);
-
-      if(self.SelectingImageFor) {
-
-        // find current slide to apply background image
-        var $current = $('div.content').find('.slide.current');
-        // add to instance storage
-        if(self.Backgrounds[self.SelectingImageFor] === undefined) {
-
-          self.Backgrounds[self.SelectingImageFor] = { url: assetUrl, size: "cover", label: "Cover" };
-        } else {
-
-          self.Backgrounds[self.SelectingImageFor].url = assetUrl;
-        }
-
-        // update background
-        $current.find('.sketchpad').css('background-image', 'url('+assetUrl+')');
-
-        self.SelectingImageFor = null;
-
-      }
-
-    });
 
   // Handle edit toggling
   window.addEventListener('message', function(e){
     var message = e.data;
-    //console.log(message.event, message.data);
+
     if(message.event=="setEditable") {
       self.toggleEdit(message.data);
     }
@@ -73,6 +47,43 @@ var Gadget = function() {
 
   player.startListening();
 };
+
+// Handling of requesting an image by listening for selection then firing callback
+Gadget.prototype.requestImg = function(img_obj, callback) {
+  
+  var self = this;
+
+  player.requestAsset(img_obj);
+
+  // Asset (image) has been selected/uploaded
+  player.on('assetSelected', function(assetData){
+    //assetUrl is the output
+    var assetUrl = player.assetUrl(assetData.asset.representations[0].id);
+
+    if(self.SelectingImageFor) {
+
+      // find current slide to apply background image
+      //var $current = $('div.content').find('.slide.current');
+      // add to instance storage
+      if(!self.Backgrounds[self.SelectingImageFor] || self.Backgrounds[self.SelectingImageFor] == undefined) {
+
+        self.Backgrounds[self.SelectingImageFor] = { url: assetUrl, size: "cover", label: "Cover" };
+      } else {
+
+        self.Backgrounds[self.SelectingImageFor].url = assetUrl;
+      }
+
+      // update background
+      //$current.find('.sketchpad').css('background-image', 'url('+assetUrl+')');
+
+      callback(self.Backgrounds[self.SelectingImageFor], assetData);
+
+      //self.SelectingImageFor = null;
+
+    }
+
+  });
+}
 
 Gadget.prototype.attributesChanged = function(attributes) {
  
@@ -90,7 +101,7 @@ Gadget.prototype.attributesChanged = function(attributes) {
 // Helper function
 Gadget.prototype.makeText = function(obj, i) {
 
-  var $text = $('<div class="text-box">').css('top', obj.y).css('left', obj.x).data('i', i);
+  var $text = $('<div class="text-box">').css('top', obj.y).css('left', obj.x).attr('data-i', i);
   var $span = $('<span class="text-box-span">').html(obj.text);
   var $input = $('<input type="text" class="text-box-input">').val(obj.text);
 
@@ -108,9 +119,9 @@ Gadget.prototype.toggleEdit = function(data) {
 
     var slides = [];
 
-    $('.slides .slide').each(function() {
+    $('.slides .slide').each(function(i) {
 
-      var id = $(this).attr('data-slide');
+      var id = i+1;
 
       var points = (self.Points[id] != undefined ? self.Points[id] : null);
 
@@ -137,6 +148,11 @@ Gadget.prototype.toggleEdit = function(data) {
 Gadget.prototype.render = function() {
   
   var self = this;
+
+  if(self.SelectingImageFor) {
+    self.SelectingImageFor = null;
+    return;
+  }
 
   // Using underscore templates
   var template = _.template($('body').find('.tpl').html(), {
@@ -170,116 +186,112 @@ Gadget.prototype.render = function() {
   // Initialize first slide's canvas
   self.canvas($el.find('.slide.current'), (self.editable || (!self.editable && learnerObject.canDraw)));
 
-  self.Points = [];
-  self.Playbacks = [];
-  self.Texts = [];
-  self.Backgrounds = [];
-
   // Load any saved slides
   if(existingSlides && existingSlides.length) {
 
+    self.Points = [];
+    self.Playbacks = [];
+    self.Texts = [];
+    self.Backgrounds = [];
+
     for(i=0; i<existingSlides.length; i++) {
 
-      // Simple fail safe
-      if(existingSlides[i].points != undefined) {
+      var thiscanvas;
+      var $slide;
+      var memCanvas = document.createElement('canvas');
+      var memCtx = memCanvas.getContext('2d');
 
-        var thiscanvas;
-        var $slide;
-        var memCanvas = document.createElement('canvas');
-        var memCtx = memCanvas.getContext('2d');
+      // Make sure the first slide is the current slide
+      if(i==0) {
 
-        // Make sure the first slide is the current slide
-        if(i==0) {
+        $slide = $el.find('.slide.current');
+        thiscanvas = $slide.find('.sketchpad')[0];
 
-          $slide = $el.find('.slide.current');
-          thiscanvas = $slide.find('.sketchpad')[0];
+      } else {
+        // Prepare secondary slides by hiding and showing proper controls
+        $slide = $el.find('.slide.current').clone();
 
-        } else {
-          // Prepare secondary slides by hiding and showing proper controls
-          $slide = $el.find('.slide.current').clone();
+        self.canvas($slide, (self.editable || (!self.editable && learnerObject.canDraw)));
 
-          self.canvas($slide, (self.editable || (!self.editable && learnerObject.canDraw)));
+        $el.find('.slides').append( $slide ).css('width', $el.find('.slides').width()+704);
 
-          $el.find('.slides').append( $slide ).css('width', $el.find('.slides').width()+704);
+        $slide.find('canvas').removeAttr('style');
 
-          $slide.find('canvas').removeAttr('style');
+        $slide.removeClass('current').attr('data-slide', i+1).find('.text.current-slide').html(i+1);
 
-          $slide.removeClass('current').attr('data-slide', i+1).find('.text.current-slide').html(i+1);
+        $($el.find('.slides .slide')[i-1]).find('.traverse.forward').removeClass('disabled');
 
-          $($el.find('.slides .slide')[i-1]).find('.traverse.forward').removeClass('disabled');
+        $slide.find('.btn.play').addClass('disabled');
 
-          $slide.find('.btn.play').addClass('disabled');
+        if(self.editable) {
+          $($el.find('.slides .slide')[i-1]).find('.remove-slide').show();
 
-          if(self.editable) {
-            $($el.find('.slides .slide')[i-1]).find('.remove-slide').show();
-
-            if(existingSlides[i+1]) {
-              $($el.find('.slides .slide')[i-1]).find('.new-slide').hide();
-            }
-          }
-
-          $slide.find('.traverse.backward').removeClass('disabled');
-
-          thiscanvas = $slide.find('.sketchpad')[0];
-        }
-
-        // Add the stored background
-        if(existingSlides[i].background != undefined && existingSlides[i].background.url != undefined) {
-          
-          self.Backgrounds[i+1] = existingSlides[i].background;
-
-          $slide.find('canvas').css('background-image', 'url('+existingSlides[i].background.url+')').css('background-size', existingSlides[i].background.size);
-
-          $slide.find('.image-size .text').html(existingSlides[i].background.label);
-        }
-
-        // Add any stored text
-        if(existingSlides[i].texts != undefined && existingSlides[i].texts.length) {
-
-          self.Texts[i+1] = existingSlides[i].texts;
-
-          for(t = 0; t<existingSlides[i].texts.length; t++) {
-
-            var $text = self.makeText(existingSlides[i].texts[t], t);
-
-            $slide.find('.canvas').append($text);
-
+          if(existingSlides[i+1]) {
+            $($el.find('.slides .slide')[i-1]).find('.new-slide').hide();
           }
         }
 
-        // If a recording has been stored, add it to the instance and show the play button
-        if(existingSlides[i].playback != undefined && existingSlides[i].playback.playback.length) {
+        $slide.find('.traverse.backward').removeClass('disabled');
 
-          $slide.find('.btn.play').removeClass('disabled');
-
-          self.Playbacks[i+1] = existingSlides[i].playback;
-        }
-
-        if(existingSlides[i].points.length) {
-
-          self.Points[i+1] = existingSlides[i].points;
-
-          var e = len = existingSlides[i].points.length;
-
-          while(e--) {
-
-            for(var p = 1; p<existingSlides[i].points[e].point.length; p++) {
-              
-              self.Draw(
-                thiscanvas.getContext('2d'), 
-                existingSlides[i].points[e].point[p-1], 
-                existingSlides[i].points[e].point[p], 
-                existingSlides[i].points[e].point[p+1], 
-                existingSlides[i].points[e].point[p+2], 
-                existingSlides[i].points[e].stroke, 
-                0
-              );
-            }
-          }
-        }
-
-        $el.find('.text.total-slides').html(existingSlides.length);
+        thiscanvas = $slide.find('.sketchpad')[0];
       }
+
+      // Add the stored background
+      if(existingSlides[i].background != undefined && existingSlides[i].background.url != undefined) {
+        
+        self.Backgrounds[i+1] = existingSlides[i].background;
+
+        $slide.find('canvas').css('background-image', 'url('+existingSlides[i].background.url+')').css('background-size', existingSlides[i].background.size);
+
+        $slide.find('.image-size .text').html(existingSlides[i].background.label);
+      }
+
+      // Add any stored text
+      if(existingSlides[i].texts != undefined && existingSlides[i].texts.length) {
+
+        self.Texts[i+1] = existingSlides[i].texts;
+
+        for(t = 0; t<existingSlides[i].texts.length; t++) {
+
+          var $text = self.makeText(existingSlides[i].texts[t], t);
+
+          $slide.find('.canvas').append($text);
+
+        }
+      }
+
+      // If a recording has been stored, add it to the instance and show the play button
+      if(existingSlides[i].playback != undefined && existingSlides[i].playback.playback.length) {
+
+        $slide.find('.btn.play').removeClass('disabled');
+
+        self.Playbacks[i+1] = existingSlides[i].playback;
+      }
+
+      if(existingSlides[i].points && existingSlides[i].points.length) {
+
+        self.Points[i+1] = existingSlides[i].points;
+
+        var e = len = existingSlides[i].points.length;
+
+        while(e--) {
+
+          for(var p = 1; p<existingSlides[i].points[e].point.length; p++) {
+            
+            self.Draw(
+              thiscanvas.getContext('2d'), 
+              existingSlides[i].points[e].point[p-1], 
+              existingSlides[i].points[e].point[p], 
+              existingSlides[i].points[e].point[p+1], 
+              existingSlides[i].points[e].point[p+2], 
+              existingSlides[i].points[e].stroke, 
+              0
+            );
+          }
+        }
+      }
+
+      $el.find('.text.total-slides').html(existingSlides.length);
     }
   }
 
@@ -319,10 +331,15 @@ Gadget.prototype.render = function() {
   // Removing a slide
   .on("click", '.remove-slide', function(e) {
 
+    var i = $(this).closest('.slide').attr('data-slide');
+
+    self.Points.splice(i,1);
+    self.Playbacks.splice(i,1);
+    self.Texts.splice(i,1);
+    self.Backgrounds.splice(i,1);
+
     // Remove the elements from the DOM and update the slide counts
     $el.find('.slide.current').remove();
-
-    var i = $(this).closest('.slide').data('slide');
 
     var $slides = $el.find('.slides .slide');
 
@@ -386,13 +403,13 @@ Gadget.prototype.render = function() {
 
       if(!$(this).hasClass('title')) {
 
-        $el.find('.slide.current .sketchpad').css('background-size', $(this).data('size'));
+        $el.find('.slide.current .sketchpad').css('background-size', $(this).attr('data-size'));
 
-        $image.data('size', $(this).data('size'));
+        $image.attr('data-size', $(this).attr('data-size'));
 
         $image.find('.text').html( $(this).html() );
 
-        self.Backgrounds[$el.find('.slide.current').attr('data-slide')].size = $(this).data('size');
+        self.Backgrounds[$el.find('.slide.current').attr('data-slide')].size = $(this).attr('data-size');
         self.Backgrounds[$el.find('.slide.current').attr('data-slide')].label = $(this).html();
 
         $submenu.toggleClass('open');
@@ -446,6 +463,14 @@ Gadget.prototype.midPointBtw = function(p1, p2) {
   };
 };
 
+Gadget.prototype.getMousePos = function(canvas, evt) {
+  var rect = canvas.getBoundingClientRect();
+  return {
+    x: evt.clientX - rect.left,
+    y: evt.clientY - rect.top
+  };
+};
+
 // Handles each canvas instance
 Gadget.prototype.canvas = function($el, editable){
 
@@ -454,8 +479,8 @@ Gadget.prototype.canvas = function($el, editable){
   window.requestAnimationFrame = window.requestAnimationFrame || window.mozRequestAnimationFrame || window.webkitRequestAnimationFrame || window.msRequestAnimationFrame;
 
   // get the canvas element and its context
-  var lineW = $el.find('.selected .circle').data('width'),
-      fillC = $el.find('.selected .color').data('color');
+  var lineW = $el.find('.selected .circle').attr('data-width'),
+      fillC = $el.find('.selected .color').attr('data-color');
 
   // A whole load of presets and flags
   var canvas = $el.find('.sketchpad')[0];
@@ -477,7 +502,7 @@ Gadget.prototype.canvas = function($el, editable){
   var points = [];
 
   var CanvasRecording = false;
-  var WhiteboardPlayback = self.Playbacks[$el.data('slide')] || [];
+  var WhiteboardPlayback = self.Playbacks[$el.attr('data-slide')] || [];
   var Erasing = false;
   var Playing = false;
   var PlayingTO;
@@ -486,7 +511,7 @@ Gadget.prototype.canvas = function($el, editable){
   // The beginning of a draw
   canvas.onmousedown = function(event) {
 
-    if(self.Points[$el.data('slide')] == undefined || !self.Points[$el.data('slide')].length) self.Points[$el.data('slide')] = [];
+    if(self.Points[$el.attr('data-slide')] == undefined || !self.Points[$el.attr('data-slide')].length) self.Points[$el.attr('data-slide')] = [];
 
     // Make sure they can draw
     if(Playing || !editable) return;
@@ -500,16 +525,8 @@ Gadget.prototype.canvas = function($el, editable){
     memCtx.clearRect(0, 0, w, h);
     memCtx.drawImage(canvas, 0, 0);
 
-    var x,y;
-
-    // get coordinates
-    if (event.layerX || event.layerX == 0) { // Firefox
-      x = event.layerX;
-      y = event.layerY;
-    } else if (event.offsetX || event.offsetX == 0) { // Opera
-      x = event.offsetX;
-      y = event.offsetY;
-    }
+    var mouse = self.getMousePos(canvas, event);
+    var x = mouse.x, y = mouse.y;
 
     if(CanvasRecording) {
 
@@ -525,11 +542,12 @@ Gadget.prototype.canvas = function($el, editable){
 
     if(Erasing) {
 
-      self.Points[$el.data('slide')].unshift({ stroke: {w:lineW, fill:fillC, globalCompositeOperation:"destination-out"}, point: [] });
+      self.Points[$el.attr('data-slide')].unshift({ stroke: {w:lineW, fill:fillC, globalCompositeOperation:"destination-out"}, point: [] });
     } else {
 
-      self.Points[$el.data('slide')].unshift({ stroke: {w:lineW, fill:fillC, globalCompositeOperation:"source-over"}, point: [{x: x, y: y}] });
+      self.Points[$el.attr('data-slide')].unshift({ stroke: {w:lineW, fill:fillC, globalCompositeOperation:"source-over"}, point: [{x: x, y: y}] });
     }
+
   };
 
   // Drawing
@@ -537,16 +555,8 @@ Gadget.prototype.canvas = function($el, editable){
     
     if (!isDrawing || Playing || !editable) return;
 
-    var cx,cy;
-
-    // get coordinates
-    if (event.layerX || event.layerX == 0) { // Firefox
-      cx = event.layerX;
-      cy = event.layerY;
-    } else if (event.offsetX || event.offsetX == 0) { // Opera
-      cx = event.offsetX;
-      cy = event.offsetY;
-    }
+    var mouse = self.getMousePos(canvas, event);
+    var cx = mouse.x, cy = mouse.y;
 
     if(CanvasRecording) {
       WhiteboardPlayback[0].points.push({ x: cx, y: cy });
@@ -567,17 +577,17 @@ Gadget.prototype.canvas = function($el, editable){
 
       ctx.globalCompositeOperation = 'destination-out';
 
-      self.Points[$el.data('slide')][0].fillC = fillC;
+      self.Points[$el.attr('data-slide')][0].fillC = fillC;
 
-      self.Points[$el.data('slide')][0].point.push({ x: cx, y: cy});
+      self.Points[$el.attr('data-slide')][0].point.push({ x: cx, y: cy});
 
-      self.Points[$el.data('slide')][0].stroke.globalCompositeOperation = 'destination-out';
+      self.Points[$el.attr('data-slide')][0].stroke.globalCompositeOperation = 'destination-out';
 
       if(CanvasRecording) {
         WhiteboardPlayback[0].stroke.globalCompositeOperation = 'destination-out';
       }
     } else {
-      self.Points[$el.data('slide')][0].point.push({ x: cx, y: cy});
+      self.Points[$el.attr('data-slide')][0].point.push({ x: cx, y: cy});
     }
 
     ctx.beginPath();
@@ -645,7 +655,7 @@ Gadget.prototype.canvas = function($el, editable){
 
       if(obj[wi].type=="text") {
 
-        var $text = self.makeText(self.Texts[$el.data('slide')][obj[wi].i], obj[wi].i);
+        var $text = self.makeText(self.Texts[$el.attr('data-slide')][obj[wi].i], obj[wi].i);
 
         $el.find('.canvas').append($text);
       }
@@ -676,7 +686,7 @@ Gadget.prototype.canvas = function($el, editable){
 
         if(WhiteboardPlayback.length && WhiteboardPlayback[0].type=="pause") {
           WhiteboardPlayback[0].end_time = WhiteboardPlayback[0].start_time+100;
-          self.Playbacks[$el.data('slide')] = {i: $el.data('slide'), playback: WhiteboardPlayback};
+          self.Playbacks[$el.attr('data-slide')] = {i: $el.attr('data-slide'), playback: WhiteboardPlayback};
         }
 
         $el.find('.btn.play').removeClass('disabled');
@@ -757,12 +767,12 @@ Gadget.prototype.canvas = function($el, editable){
     $(this).closest('.grouped').find('li').removeClass('selected');
     $(this).addClass('selected');
 
-    lineW = $el.find('.selected .circle').data('width');
+    lineW = $el.find('.selected .circle').attr('data-width');
 
     if(!Erasing) {
-      fillC = $el.find('.selected .color').data('color');
+      fillC = $el.find('.selected .color').attr('data-color');
     } else {
-      lastFill = $el.find('.selected .color').data('color');
+      lastFill = $el.find('.selected .color').attr('data-color');
     }
 
     e.stopImmediatePropagation();
@@ -794,7 +804,12 @@ Gadget.prototype.canvas = function($el, editable){
     self.SelectingImageFor = $el.attr('data-slide');
 
     // Adding or editing the background image of a slide
-    player.requestAsset({type:"image", attribute: "slide_"+$el.attr('data-slide')+"_image"});
+    self.requestImg({type:"image", attribute: "slide_"+$el.attr('data-slide')+"_image"}, function(data, asset) {
+
+      if(self.SelectingImageFor==$el.attr('data-slide') && asset.name=="slide_"+$el.attr('data-slide')+"_image") {
+        $el.find('canvas').removeAttr('style').css('background-image', 'url('+data.url+')').css('background-size', data.size);
+      }
+    });
 
     e.stopImmediatePropagation();
   })
@@ -838,11 +853,11 @@ Gadget.prototype.canvas = function($el, editable){
             var offset = $(this).offset();
             var y = e.clientY - offset.top;
             var x = e.clientX - offset.left;
-            var i = (self.Texts[$el.data('slide')] ? self.Texts[$el.data('slide')].length : 0);
+            var i = (self.Texts[$el.attr('data-slide')] ? self.Texts[$el.attr('data-slide')].length : 0);
 
             $text.css('top', y).css('left', x);
 
-            $('.slide.current .canvas').append( $text.data('i', i ) );
+            $('.slide.current .canvas').append( $text.attr('data-i', i ) );
 
             if(CanvasRecording) {
               if(WhiteboardPlayback.length && WhiteboardPlayback[0].type=="pause") {
@@ -865,19 +880,19 @@ Gadget.prototype.canvas = function($el, editable){
                 $text.remove();
                 $el.find('.add.text').removeClass('selected');
                 $(this).removeClass('text-busy busy').off("click");
-                self.Texts.splice($text.data('i'),1);
+                self.Texts.splice($text.attr('data-i'),1);
 
                 Adding = false;
               } else {
                 
                 $span.html( $(this).val() );
-                self.Texts[$el.data('slide')][$text.data('i')].text = $(this).val();
+                self.Texts[$el.attr('data-slide')][$text.attr('data-i')].text = $(this).val();
               }
             });
 
-            if(!self.Texts[$el.data('slide')]) self.Texts[$el.data('slide')] = [];
+            if(!self.Texts[$el.attr('data-slide')]) self.Texts[$el.attr('data-slide')] = [];
 
-            self.Texts[$el.data('slide')].push({text: 'Hello World!', x: x, y: y});
+            self.Texts[$el.attr('data-slide')].push({text: 'Hello World!', x: x, y: y});
 
           } else {
 
@@ -922,12 +937,12 @@ Gadget.prototype.canvas = function($el, editable){
 
           $me.remove();
           $el.find('.add.text').removeClass('selected');
-          self.Texts.splice($me.data('i'),1);
+          self.Texts.splice($me.attr('data-i'),1);
 
         } else {
           
           $span.html( $(this).val() );
-          self.Texts[$el.data('slide')][$me.data('i')].text = $(this).val();
+          self.Texts[$el.attr('data-slide')][$me.attr('data-i')].text = $(this).val();
         }
       });
 
