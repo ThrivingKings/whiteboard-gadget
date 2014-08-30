@@ -47,34 +47,17 @@ Please, refer to <style scoped>...
   margin-right: 8px;
 }
 
-.content button.record {
+.content button.record, .content button.clear-image {
   margin-right: 12px;
 }
 
+.content button.clear-image, .content button.clear {
+  display: none;
+}
+
 .content button.recording {
-  animation-duration: 3s;
-  animation-name: record;
-  animation-iteration-count: infinite;
-  -webkit-animation-duration: 3s;
-  -webkit-animation-name: recording;
-  -webkit-animation-iteration-count: infinite;
+  color: #e74c3c;
   text-shadow: none;
-}
-
-@keyframes recording {
-  0% {}
-
-  50% {
-    color: #e74c3c;
-  }
-}
-
-@-webkit-keyframes recording {
-  0% {}
-
-  50% {
-    color: #e74c3c;
-  }
 }
 
 .content button.btn:hover {
@@ -312,10 +295,6 @@ li.large {
 .icon > i {
   line-height: 50px;
   vertical-align: middle;
-}
-
-.icon.remove-slide {
-  display: none;
 }
 
 .text-center { text-align: center; }

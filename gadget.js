@@ -217,6 +217,8 @@ Gadget.prototype.render = function() {
 
         $slide.find('canvas').removeAttr('style');
 
+        $slide.find('.text-box').remove();
+
         $slide.removeClass('current').attr('data-slide', i+1).find('.text.current-slide').html(i+1);
 
         $($el.find('.slides .slide')[i-1]).find('.traverse.forward').removeClass('disabled');
@@ -244,6 +246,8 @@ Gadget.prototype.render = function() {
         $slide.find('canvas').css('background-image', 'url('+existingSlides[i].background.url+')').css('background-size', existingSlides[i].background.size);
 
         $slide.find('.image-size .text').html(existingSlides[i].background.label);
+
+        $slide.find('.clear-image').show();
       }
 
       // Add any stored text
@@ -258,6 +262,8 @@ Gadget.prototype.render = function() {
           $slide.find('.canvas').append($text);
 
         }
+
+        $slide.find('.clear').show();
       }
 
       // If a recording has been stored, add it to the instance and show the play button
@@ -289,6 +295,8 @@ Gadget.prototype.render = function() {
             );
           }
         }
+
+        $slide.find('.clear').show();
       }
 
       $el.find('.text.total-slides').html(existingSlides.length);
@@ -301,13 +309,20 @@ Gadget.prototype.render = function() {
     // Clone the old slide, create the new, then clear the new
     var $old = $el.find('.slide.current');
     var $new = $old.clone();
-    var current = $el.find('.slides .slide').length+1;
+    var current = parseInt($old.attr('data-slide'))+1;
+
+    self.Points.splice(current,0,null);
+    self.Playbacks.splice(current,0,null);
+    self.Texts.splice(current,0,null);
+    self.Backgrounds.splice(current,0,null);
 
     $old.removeClass('current');
 
     $new.addClass('current').attr('data-slide', current);
 
-    $el.find('.slides').append( $new ).css('width', $el.find('.slides').width()+704);
+    $old.after( $new );
+
+    $el.find('.slides').css('width', $el.find('.slides').width()+704);
 
     $new.find('.text.current-slide').html(current);
     $el.find('.text.total-slides').html($el.find('.slides .slide').length);
@@ -317,12 +332,19 @@ Gadget.prototype.render = function() {
 
     $new.find('.btn.play').addClass('disabled');
 
-    $old.find('.add.new-slide').hide();
-    $old.find('.remove-slide').show();
+    $new.find('.remove-slide').removeClass('disabled');
+    $old.find('.remove-slide').removeClass('disabled');
 
     $new.find('.text-box').remove();
 
     $new.find('canvas').removeAttr('style');
+
+    $new.find('.clear, .clear-image').hide();
+
+    $el.find('.slides .slide').each(function(i) {
+
+      $(this).attr('data-slide', i+1).find('.text.current-slide').html(i+1);
+    });
 
     self.canvas($el.find('.slide.current'), (self.editable || (!self.editable && learnerObject.canDraw)));
 
@@ -354,6 +376,10 @@ Gadget.prototype.render = function() {
 
       $(this).attr('data-slide', i+1).find('.text.current-slide').html(i+1);
     })
+
+    if($slides.length==1) {
+      $slides.find('.remove-slide').addClass('disabled');
+    }
 
     e.stopImmediatePropagation();
 
@@ -512,6 +538,8 @@ Gadget.prototype.canvas = function($el, editable){
   canvas.onmousedown = function(event) {
 
     if(self.Points[$el.attr('data-slide')] == undefined || !self.Points[$el.attr('data-slide')].length) self.Points[$el.attr('data-slide')] = [];
+
+    $el.find('.clear').show();
 
     // Make sure they can draw
     if(Playing || !editable) return;
@@ -757,6 +785,7 @@ Gadget.prototype.canvas = function($el, editable){
       $el.find('.sketchpad').css('background-image', '');
       $el.find('.text-box').remove();
       $el.find('.btn.play').addClass('disabled');
+      $el.find('.clear').hide();
 
       e.stopImmediatePropagation();
     }
@@ -808,10 +837,17 @@ Gadget.prototype.canvas = function($el, editable){
 
       if(self.SelectingImageFor==$el.attr('data-slide') && asset.name=="slide_"+$el.attr('data-slide')+"_image") {
         $el.find('canvas').removeAttr('style').css('background-image', 'url('+data.url+')').css('background-size', data.size);
+        $el.find('.clear-image').show();
       }
     });
 
     e.stopImmediatePropagation();
+  })
+  .on("click", '.clear-image', function(e) {
+    
+    self.Backgrounds[$el.attr('data-slide')] = null;
+    $el.find('canvas').removeAttr('style');
+    $el.find('.clear-image').hide();
   })
   .on("click", '.add.text', function(e) {
 
@@ -853,7 +889,7 @@ Gadget.prototype.canvas = function($el, editable){
             var offset = $(this).offset();
             var y = e.clientY - offset.top;
             var x = e.clientX - offset.left;
-            var i = (self.Texts[$el.attr('data-slide')] ? self.Texts[$el.attr('data-slide')].length : 0);
+            var i = (self.Texts[$el.attr('data-slide')] != undefined ? self.Texts[$el.attr('data-slide')].length : 0);
 
             $text.css('top', y).css('left', x);
 
