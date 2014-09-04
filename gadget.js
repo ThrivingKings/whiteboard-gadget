@@ -67,7 +67,7 @@ Gadget.prototype.requestImg = function(img_obj, callback) {
       // add to instance storage
       if(!self.Backgrounds[self.SelectingImageFor] || self.Backgrounds[self.SelectingImageFor] == undefined) {
 
-        self.Backgrounds[self.SelectingImageFor] = { url: assetUrl, size: "cover", label: "Cover" };
+        self.Backgrounds[self.SelectingImageFor] = { url: assetUrl, size: "cover", label: "full width" };
       } else {
 
         self.Backgrounds[self.SelectingImageFor].url = assetUrl;
@@ -213,7 +213,7 @@ Gadget.prototype.render = function() {
 
         self.canvas($slide, (self.editable || (!self.editable && learnerObject.canDraw)));
 
-        $el.find('.slides').append( $slide ).css('width', $el.find('.slides').width()+704);
+        $el.find('.slides').append( $slide ).css('width', $el.find('.slides').width()+722);
 
         $slide.find('canvas').removeAttr('style');
 
@@ -225,13 +225,6 @@ Gadget.prototype.render = function() {
 
         $slide.find('.btn.play').addClass('disabled');
 
-        if(self.editable) {
-          $($el.find('.slides .slide')[i-1]).find('.remove-slide').show();
-
-          if(existingSlides[i+1]) {
-            $($el.find('.slides .slide')[i-1]).find('.new-slide').hide();
-          }
-        }
 
         $slide.find('.traverse.backward').removeClass('disabled');
 
@@ -301,6 +294,7 @@ Gadget.prototype.render = function() {
 
       $el.find('.text.total-slides').html(existingSlides.length);
     }
+    $el.find('.slides .slide[data-slide="1"]').find('.remove-slide').addClass('disabled');
   }
 
   // Adding a slide
@@ -322,7 +316,7 @@ Gadget.prototype.render = function() {
 
     $old.after( $new );
 
-    $el.find('.slides').css('width', $el.find('.slides').width()+704);
+    $el.find('.slides').css('width', $el.find('.slides').width()+722);
 
     $new.find('.text.current-slide').html(current);
     $el.find('.text.total-slides').html($el.find('.slides .slide').length);
@@ -353,36 +347,39 @@ Gadget.prototype.render = function() {
   // Removing a slide
   .on("click", '.remove-slide', function(e) {
 
-    var i = $(this).closest('.slide').attr('data-slide');
+    if(!$(this).hasClass('disabled')) {
 
-    self.Points.splice(i,1);
-    self.Playbacks.splice(i,1);
-    self.Texts.splice(i,1);
-    self.Backgrounds.splice(i,1);
+      var i = $(this).closest('.slide').attr('data-slide');
 
-    // Remove the elements from the DOM and update the slide counts
-    $el.find('.slide.current').remove();
+      self.Points.splice(i,1);
+      self.Playbacks.splice(i,1);
+      self.Texts.splice(i,1);
+      self.Backgrounds.splice(i,1);
 
-    var $slides = $el.find('.slides .slide');
+      // Remove the elements from the DOM and update the slide counts
+      $el.find('.slide.current').remove();
 
-    $( $slides[(i==1 ? 0 : i-1)] ).addClass('current');
+      var $slides = $el.find('.slides .slide');
 
-    $( $slides[0] ).find('.traverse.backward').addClass('disabled');
-    $( $slides[$slides.length-1] ).find('.traverse.forward').addClass('disabled');
+      $( $slides[(i==2 ? 0 : i-2)] ).addClass('current');
 
-    $el.find('.text.total-slides').html($el.find('.slides .slide').length);
+      $( $slides[0] ).find('.traverse.backward').addClass('disabled');
+      $( $slides[$slides.length-1] ).find('.traverse.forward').addClass('disabled');
 
-    $slides.each(function(i) {
+      $el.find('.text.total-slides').html($el.find('.slides .slide').length);
 
-      $(this).attr('data-slide', i+1).find('.text.current-slide').html(i+1);
-    })
+      $slides.each(function(i) {
 
-    if($slides.length==1) {
-      $slides.find('.remove-slide').addClass('disabled');
+        $(this).attr('data-slide', i+1).find('.text.current-slide').html(i+1);
+      })
+
+      if($slides.length==1) {
+        $slides.find('.remove-slide').addClass('disabled');
+      }
+
     }
 
     e.stopImmediatePropagation();
-
   })
   // Traversing slides
   .on("click", '.traverse.backward', function(e) {
@@ -427,7 +424,7 @@ Gadget.prototype.render = function() {
 
     $submenu.on("click", 'li', function(e) {
 
-      if(!$(this).hasClass('title')) {
+      if($(this).attr('data-size')!="clear") {
 
         $el.find('.slide.current .sketchpad').css('background-size', $(this).attr('data-size'));
 
@@ -437,6 +434,12 @@ Gadget.prototype.render = function() {
 
         self.Backgrounds[$el.find('.slide.current').attr('data-slide')].size = $(this).attr('data-size');
         self.Backgrounds[$el.find('.slide.current').attr('data-slide')].label = $(this).html();
+
+        $submenu.toggleClass('open');
+      } else {
+
+        self.Backgrounds[$el.find('.slide.current').attr('data-slide')] = null;
+        $el.find('canvas').removeAttr('style');
 
         $submenu.toggleClass('open');
       }
@@ -798,10 +801,11 @@ Gadget.prototype.canvas = function($el, editable){
 
     lineW = $el.find('.selected .circle').attr('data-width');
 
-    if(!Erasing) {
-      fillC = $el.find('.selected .color').attr('data-color');
-    } else {
-      lastFill = $el.find('.selected .color').attr('data-color');
+    fillC = $el.find('.selected .color').attr('data-color');
+
+    if(Erasing) {
+      $el.find('.erase').closest('li').removeClass('selected');
+      Erasing = false;
     }
 
     e.stopImmediatePropagation();
@@ -816,6 +820,8 @@ Gadget.prototype.canvas = function($el, editable){
       fillC = lastFill;
       Erasing = false;
 
+      $el.find('.grouped.colors .color[data-color="'+lastFill+'"]').closest('li').addClass('selected');
+
     } else {
 
       $(this).closest('li').addClass('selected');
@@ -824,6 +830,8 @@ Gadget.prototype.canvas = function($el, editable){
       Erasing = true;
 
       fillC = "rgba(0,0,0,1)";
+
+      $el.find('.grouped.colors li').removeClass('selected');
     }
 
     e.stopImmediatePropagation();
@@ -837,17 +845,11 @@ Gadget.prototype.canvas = function($el, editable){
 
       if(self.SelectingImageFor==$el.attr('data-slide') && asset.name=="slide_"+$el.attr('data-slide')+"_image") {
         $el.find('canvas').removeAttr('style').css('background-image', 'url('+data.url+')').css('background-size', data.size);
-        $el.find('.clear-image').show();
+        //$el.find('.clear-image').show();
       }
     });
 
     e.stopImmediatePropagation();
-  })
-  .on("click", '.clear-image', function(e) {
-    
-    self.Backgrounds[$el.attr('data-slide')] = null;
-    $el.find('canvas').removeAttr('style');
-    $el.find('.clear-image').hide();
   })
   .on("click", '.add.text', function(e) {
 
@@ -873,8 +875,8 @@ Gadget.prototype.canvas = function($el, editable){
         $(this).closest('li').addClass('selected');
 
         var $text = $('<div class="text-box">');
-        var $span = $('<span class="text-box-span">').html('Hello World!');
-        var $input = $('<input type="text" class="text-box-input">').val('Hello World!');
+        var $span = $('<span class="text-box-span">');
+        var $input = $('<input type="text" class="text-box-input" placeholder="Enter your text">');
 
         $text.append($span).append($input);
 

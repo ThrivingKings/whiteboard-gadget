@@ -25,13 +25,14 @@
       <div class="menu cf">
         <nav>
           <div class="col col-4">
-            <li class="js-can-record"><button class="btn btn-default record" type="button"><i class="fa fa-circle"></i> Record</button></li>
-            <li><button class="btn btn-default play disabled" type="button"><i class="fa fa-play"></i> Play</button></li>
+            <li><button class="btn btn-default play disabled" type="button"><i class="fa fa-play"></i> play</button></li>
+            <li class="js-can-record"><button class="btn btn-default record" type="button"><i class="fa fa-circle"></i> record</button></li>
           </div>
-          <div class="col col-4 text-center">Slide <span class="text current-slide">1</span> of <span class="text total-slides">1</span></div>
+          <div class="col col-4 text-center"></div>
           <div class="col col-4">
-            <li class="right js-can-draw"><button class="btn btn-default clear" type="button">Clear Canvas</button></li>
-            <li class="right js-can-draw"><button class="btn btn-default clear-image" type="button">Clear Image</button></li>
+            <li class="right control"><span class="icon traverse forward disabled"><i class="fa fa-chevron-right"></i></span></li>
+            <li class="right control"><span class="icon traverse backward disabled"><i class="fa fa-chevron-left"></i></span></li>
+            <li class="right text">Slide <span class="text current-slide">1</span> of <span class="text total-slides">1</span></li>
           </div>
         </nav>
       </div>
@@ -39,43 +40,34 @@
       <div class="canvas">
         <canvas class="sketchpad"></canvas>
         <div class="controls cf">
+          <li class="js-can-draw"><span class="icon add image"><i class="fa fa-picture-o"></i></span></li>
+          <li class="js-can-draw text-icon b-right">
+            <ul class="sub-menu bg-size">
+              <li data-size="contain">full height</li>
+              <li data-size="cover">full width</li>
+              <li data-size="clear">no image</li>
+            </ul>
+            <span class="icon image-size" data-size="cover"><span class="text">full width</span><i class="fa fa-caret-down"></i></span>
+          </li>
           <div class="grouped js-can-draw">
             <li><span class="icon circle small" data-width="6"><i class="fa fa-circle"></i></span></li>
             <li class="selected"><span class="icon circle medium" data-width="9"><i class="fa fa-circle"></i></span></li>
-            <li><span class="icon circle large" data-width="13"><i class="fa fa-circle"></i></span></li>
+            <li class="b-right"><span class="icon circle large" data-width="13"><i class="fa fa-circle"></i></span></li>
           </div>
-          <div class="grouped js-can-draw">
+          <div class="grouped colors js-can-draw">
             <li class="selected"><span class="color black" data-color="#444"></span></li>
             <li><span class="color red" data-color="#e74c3c"></span></li>
             <li><span class="color orange" data-color="#e67e22"></span></li>
+            <li><span class="color yellow" data-color="#f1c40f"></span></li>
             <li><span class="color green" data-color="#2ecc71"></span></li>
             <li><span class="color blue" data-color="#3498db"></span></li>
           </div>
-          <li class="js-can-draw"><span class="icon erase"><i class="fa fa-eraser"></i></span></li>
-          <li class="js-can-draw"><span class="icon add image"><i class="fa fa-picture-o"></i></span></li>
-          <li class="js-can-draw text-icon">
-            <ul class="sub-menu bg-size">
-              <li class="title">Background</li>
-              <li data-size="auto">Auto</li>
-              <li data-size="contain">Contain</li>
-              <li data-size="cover">Cover</li>
-              <li data-size="100% 100%">Fitted</li>
-            </ul>
-            <span class="icon image-size" data-size="cover"><span class="text">Cover</span><i class="fa fa-sort"></i></span>
-          </li>
-          <li class="js-can-draw"><span class="icon add text"><i class="fa fa-font"></i></span></li>
+          <li class="js-can-draw b-right"><span class="icon erase"><i class="fa fa-eraser"></i></span></li>
+          <li class="js-can-draw b-right"><span class="icon add text"><i class="fa fa-font"></i></span></li>
 
           <li class="right js-can-draw"><span class="icon add new-slide"><i class="fa fa-plus"></i></span></li>
-          <li class="right js-can-draw"><span class="icon remove-slide disabled"><i class="fa fa-minus"></i></span></li>
-          <li class="right"><span class="icon traverse forward disabled"><i class="fa fa-chevron-right"></i></span></li>
-          <li class="right"><span class="icon traverse backward disabled"><i class="fa fa-chevron-left"></i></span></li>
-        </div>
-        <div class="sub-controls cf">
-          <div class="text-controls">
-            <li class="large"><input type="text" class="text-text"></li>
-            <li class="medium">x <input type="text" class="text-pos x"></li>
-            <li class="medium">y <input type="text" class="text-pos y"></li>
-          </div>
+          <li class="right js-can-draw"><span class="icon remove-slide"><i class="fa fa-minus"></i></span></li>
+          <li class="right js-can-draw clear-btn action-btn"><button class="btn btn-default clear" type="button">clear</button></li>
         </div>
       </div>
     </div>
