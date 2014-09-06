@@ -92,7 +92,6 @@ input:focus, input:active {
 
 .content button.clear {
   background: #7c7975;
-  display: none;
 }
 
 .content button.clear:hover {
@@ -110,11 +109,11 @@ input:focus, input:active {
 
 @keyframes blink {
   0% { color: white; } 
-  50% { color: black; }
+  50% { color: red; }
 }
 @-webkit-keyframes blink {
   0% { color: white; } 
-  50% { color: black; }
+  50% { color: red; }
 }
 
 .content button:hover {
