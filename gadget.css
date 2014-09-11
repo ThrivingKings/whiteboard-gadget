@@ -195,6 +195,10 @@ input:focus, input:active {
   width: 40px;
 }
 
+.col li.control.right {
+  text-align: right;
+}
+
 .content .canvas .controls li.clear-btn {
   width: 53px;
 }

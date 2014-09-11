@@ -221,10 +221,7 @@ Gadget.prototype.render = function() {
 
         $slide.removeClass('current').attr('data-slide', i+1).find('.text.current-slide').html(i+1);
 
-        $($el.find('.slides .slide')[i-1]).find('.traverse.forward').removeClass('disabled');
-
         $slide.find('.btn.play').addClass('disabled');
-
 
         $slide.find('.traverse.backward').removeClass('disabled');
 
@@ -294,7 +291,11 @@ Gadget.prototype.render = function() {
 
       $el.find('.text.total-slides').html(existingSlides.length);
     }
-    $el.find('.slides .slide[data-slide="1"]').find('.remove-slide').addClass('disabled');
+    
+    // Enabled traversing forward
+    $el.find('.slides .slide').find('.traverse.forward').removeClass('disabled');
+    // Except on the last slide
+    $el.find('.slides .slide').last().find('.traverse.forward').addClass('disabled');
   }
 
   // Adding a slide
@@ -518,7 +519,7 @@ Gadget.prototype.canvas = function($el, editable){
   var memCanvas = document.createElement('canvas');
   var memCtx = memCanvas.getContext('2d');
 
-  var w = 700, h = 350;
+  var w = 722, h = 350;
 
   canvas.setAttribute("height", h);
   canvas.setAttribute("width", w);
