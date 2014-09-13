@@ -24,14 +24,6 @@ var Gadget = function() {
     ]
   }});*/
 
-  // Asset URL template override
-  player.assetUrlTemplate = player.assetUrlTemplate ||
-    'http://localhost:3000/api/assets/<%= id %>';
-  // Update based on env
-  player.on('environmentChanged', function(data){
-    player.assetUrlTemplate = data && data.assetUrlTemplate;
-  }.bind(this));
-
   player.on('editableChanged', this.toggleEdit.bind(this));
   player.on('attributesChanged', this.attributesChanged.bind(this));
 
