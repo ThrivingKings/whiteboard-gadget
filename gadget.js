@@ -32,18 +32,8 @@ var Gadget = function() {
     player.assetUrlTemplate = data && data.assetUrlTemplate;
   }.bind(this));
 
-  // Doesn't seem to work:
-  //player.on('editableChanged', this.toggleEdit.bind(this));
+  player.on('editableChanged', this.toggleEdit.bind(this));
   player.on('attributesChanged', this.attributesChanged.bind(this));
-
-  // Handle edit toggling
-  window.addEventListener('message', function(e){
-    var message = e.data;
-
-    if(message.event=="setEditable") {
-      self.toggleEdit(message.data);
-    }
-  });
 
   player.startListening();
 };
