@@ -934,7 +934,7 @@ Gadget.prototype.canvas = function($el, editable){
 
             if(!self.Texts[$el.attr('data-slide')]) self.Texts[$el.attr('data-slide')] = [];
 
-            self.Texts[$el.attr('data-slide')].push({text: 'Hello World!', x: x, y: y});
+            self.Texts[$el.attr('data-slide')].push({text: '', x: x, y: y});
 
           } else {
 
@@ -961,7 +961,7 @@ Gadget.prototype.canvas = function($el, editable){
 
     var $me = $(this);
 
-    if(!isDrawing && !Playing) {
+    if(!isDrawing && !Playing && self.editable) {
 
       var $span = $me.find('.text-box-span');
       var $input = $me.find('.text-box-input');
