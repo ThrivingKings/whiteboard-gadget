@@ -22,6 +22,36 @@ input:focus, input:active {
   outline: none;
 }
 
+.alert {
+  display: none;
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 100%;
+  padding: 0;
+  margin: 0;
+  color: #7c7975;
+  background-color: rgba(242,241,237,0.9);
+  z-index: 200;
+}
+
+.alert-controls {
+  position: relative;
+  top: 50%;
+  margin-top: -35px;
+  text-align: center;
+}
+
+.alert-controls * {
+  display: none;
+}
+
+.alert-msg {
+  font-size: 16px;
+  margin-bottom: 10px;
+}
+
 .col {
   box-sizing: border-box;
   float: left;
@@ -46,7 +76,7 @@ input:focus, input:active {
   padding-top: 5px;
 }
 
-.content button.btn {
+.content button.btn, .btn {
   box-shadow: none;
   -moz-box-shadow: none;
   -webkit-box-shadow: none;
@@ -57,7 +87,7 @@ input:focus, input:active {
   padding: 5px 10px;
 }
 
-.content button.btn-default {
+.content button.btn-default, .btn-default {
   background: #7c7975;
 }
 
@@ -65,28 +95,28 @@ input:focus, input:active {
   margin-right: 8px;
 }
 
-.content button.record {
+.content button.record, .btn-alert {
   background: #ce3e30;
 }
 
-.content button.record:hover {
+.content button.record:hover, .btn-alert:hover {
   background: #be392c;
 }
 
-.content button.record:active {
+.content button.record:active, .btn-alert:active {
   background: #ae3429;
 }
 
-.content button.play {
+.content button.play, .btn-info {
   background: #3a968a;
   margin-right: 10px;
 }
 
-.content button.play:hover {
+.content button.play:hover, .btn-info:hover {
   background: #2f7a70;
 }
 
-.content button.play:active {
+.content button.play:active, .btn-info:active {
   background: #ae3429;
 }
 

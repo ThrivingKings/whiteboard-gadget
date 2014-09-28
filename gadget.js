@@ -92,6 +92,20 @@ Gadget.prototype.makeText = function(obj, i) {
   return $text;
 };
 
+// Alert messages
+Gadget.prototype.showAlert = function(cl, callback) {
+
+  $('.alert, .alert-cancel').show();
+  $('.alert ' + cl).show();
+
+  $('.alert button').on("click", function(e) {
+
+    $('.alert, .alert-controls *').hide();
+    if(callback) callback($(this));
+    e.stopImmediatePropagation();
+  });
+};
+
 Gadget.prototype.toggleEdit = function(data) {
 
   var self = this;
@@ -488,6 +502,8 @@ Gadget.prototype.canvas = function($el, editable){
 
   var self = this;
 
+  $el.find('.sketchpad').show();
+
   window.requestAnimationFrame = window.requestAnimationFrame || window.mozRequestAnimationFrame || window.webkitRequestAnimationFrame || window.msRequestAnimationFrame;
 
   // get the canvas element and its context
@@ -669,9 +685,7 @@ Gadget.prototype.canvas = function($el, editable){
 
       if(obj[wi].type=="text") {
 
-        var $text = self.makeText(self.Texts[$el.attr('data-slide')][obj[wi].i], obj[wi].i);
-
-        $el.find('.canvas').append($text);
+        $el.find('.text-box[data-i="'+obj[wi].i+'"]').show();
       }
     }
 
@@ -683,6 +697,7 @@ Gadget.prototype.canvas = function($el, editable){
       $el.find('.btn.record').removeClass('disabled');
       $el.find('.btn.play').removeClass('disabled');
       $el.find('.btn.clear').removeClass('disabled');
+      $el.find('.text-box').show();
 
       Playing = false;
     }
@@ -767,12 +782,12 @@ Gadget.prototype.canvas = function($el, editable){
           }
         }
 
-      Playback(self.Playbacks[$el.data("slide")].playback);
-
       $el.find('.btn.record').addClass('disabled');
       $el.find('.btn.play').addClass('disabled');
       $el.find('.btn.clear').addClass('disabled');
-      $el.find('.text-box').remove();
+      $el.find('.text-box').hide();
+
+      Playback(self.Playbacks[$el.data("slide")].playback);
     }
 
     e.stopImmediatePropagation();
@@ -782,17 +797,38 @@ Gadget.prototype.canvas = function($el, editable){
     // Clearing the canvas clears the drawing, background, texts, and playbacks
     if(!$(this).hasClass('disabled')) {
 
-      canvas.width = canvas.width;
-      memCanvas.width = canvas.width;
-      WhiteboardPlayback = [];
-      self.Playbacks[$el.attr("data-slide")] = null;
-      self.Texts[$el.attr("data-slide")] = null;
-      self.Backgrounds[$el.attr("data-slide")] = null;
-      self.Points[$el.attr("data-slide")] = null;
-      $el.find('.sketchpad').css('background-image', '');
-      $el.find('.text-box').remove();
-      $el.find('.btn.play').addClass('disabled');
-      $el.find('.clear').addClass('disabled');
+      self.showAlert('.alert-clear', function($e) {
+
+        var clear = $e.attr('data-clear');
+        $el = $('.slide.current');
+
+        switch(clear) {
+
+          case "recording":
+            WhiteboardPlayback = [];
+            self.Playbacks[$el.attr("data-slide")] = null;
+            $el.find('.btn.play').addClass('disabled');
+            break;
+
+          case "all":
+            self.canvas($el,true);
+            WhiteboardPlayback = [];
+            self.Playbacks[$el.attr("data-slide")] = null;
+            self.Texts[$el.attr("data-slide")] = null;
+            self.Backgrounds[$el.attr("data-slide")] = null;
+            self.Points[$el.attr("data-slide")] = null;
+            $el.find('.sketchpad').css('background-image', '');
+            $el.find('.text-box').remove();
+            $el.find('.btn.play').addClass('disabled');
+            $el.find('.clear').addClass('disabled');
+            break;
+
+          case "text":
+            self.Texts[$el.attr("data-slide")] = null;
+            $el.find('.text-box').remove();
+            break;
+        }
+      });
 
       e.stopImmediatePropagation();
     }
@@ -805,11 +841,14 @@ Gadget.prototype.canvas = function($el, editable){
 
     lineW = $el.find('.selected .circle').attr('data-width');
 
-    fillC = $el.find('.selected .color').attr('data-color');
+    if($(this).find('.color').length) {
 
-    if(Erasing) {
-      $el.find('.erase').closest('li').removeClass('selected');
-      Erasing = false;
+      fillC = $el.find('.selected .color').attr('data-color');
+
+      if(Erasing) {
+        $el.find('.erase').closest('li').removeClass('selected');
+        Erasing = false;
+      }
     }
 
     e.stopImmediatePropagation();
