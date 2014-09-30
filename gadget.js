@@ -292,6 +292,10 @@ Gadget.prototype.render = function() {
     $el.find('.slides .slide').find('.traverse.forward').removeClass('disabled');
     // Except on the last slide
     $el.find('.slides .slide').last().find('.traverse.forward').addClass('disabled');
+
+    if($el.find('.slides .slide').length>1) {
+      $el.find('.slides .slide .remove-slide').removeClass('disabled');
+    }
   }
 
   // Adding a slide
@@ -358,7 +362,7 @@ Gadget.prototype.render = function() {
 
       var $slides = $el.find('.slides .slide');
 
-      $( $slides[(i==2 ? 0 : i-2)] ).addClass('current');
+      $( $slides[(i==1 ? 0 : i-1)] ).addClass('current');
 
       $( $slides[0] ).find('.traverse.backward').addClass('disabled');
       $( $slides[$slides.length-1] ).find('.traverse.forward').addClass('disabled');
@@ -800,7 +804,6 @@ Gadget.prototype.canvas = function($el, editable){
       self.showAlert('.alert-clear', function($e) {
 
         var clear = $e.attr('data-clear');
-        $el = $('.slide.current');
 
         switch(clear) {
 
@@ -811,7 +814,13 @@ Gadget.prototype.canvas = function($el, editable){
             break;
 
           case "all":
-            self.canvas($el,true);
+            
+            var $canvas = $('.slide.current').find('.sketchpad')[0];
+            var $ctx = $canvas.getContext('2d');
+
+            $ctx.clearRect(0, 0, $canvas.width, $canvas.height);
+            $canvas.width = $canvas.width;
+
             WhiteboardPlayback = [];
             self.Playbacks[$el.attr("data-slide")] = null;
             self.Texts[$el.attr("data-slide")] = null;
