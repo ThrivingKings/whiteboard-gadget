@@ -804,13 +804,14 @@ Gadget.prototype.canvas = function($el, editable){
       self.showAlert('.alert-clear', function($e) {
 
         var clear = $e.attr('data-clear');
+        var $slide = $('.slide.current');
 
         switch(clear) {
 
           case "recording":
             WhiteboardPlayback = [];
-            self.Playbacks[$el.attr("data-slide")] = null;
-            $el.find('.btn.play').addClass('disabled');
+            self.Playbacks[$slide.attr("data-slide")] = null;
+            $slide.find('.btn.play').addClass('disabled');
             break;
 
           case "all":
@@ -822,19 +823,19 @@ Gadget.prototype.canvas = function($el, editable){
             $canvas.width = $canvas.width;
 
             WhiteboardPlayback = [];
-            self.Playbacks[$el.attr("data-slide")] = null;
-            self.Texts[$el.attr("data-slide")] = null;
-            self.Backgrounds[$el.attr("data-slide")] = null;
-            self.Points[$el.attr("data-slide")] = null;
-            $el.find('.sketchpad').css('background-image', '');
-            $el.find('.text-box').remove();
-            $el.find('.btn.play').addClass('disabled');
-            $el.find('.clear').addClass('disabled');
+            self.Playbacks[$slide.attr("data-slide")] = null;
+            self.Texts[$slide.attr("data-slide")] = null;
+            self.Backgrounds[$slide.attr("data-slide")] = null;
+            self.Points[$slide.attr("data-slide")] = null;
+            $slide.find('.sketchpad').css('background-image', '');
+            $slide.find('.text-box').remove();
+            $slide.find('.btn.play').addClass('disabled');
+            $slide.find('.clear').addClass('disabled');
             break;
 
           case "text":
-            self.Texts[$el.attr("data-slide")] = null;
-            $el.find('.text-box').remove();
+            self.Texts[$slide.attr("data-slide")] = null;
+            $slide.find('.text-box').remove();
             break;
         }
       });
