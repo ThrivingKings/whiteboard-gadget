@@ -425,26 +425,17 @@ Gadget.prototype.render = function() {
 
     $submenu.on("click", 'li', function(e) {
 
-      if($(this).attr('data-size')!="clear") {
+      $el.find('.slide.current .sketchpad').css('background-size', $(this).attr('data-size'));
 
-        $el.find('.slide.current .sketchpad').css('background-size', $(this).attr('data-size'));
+      $image.attr('data-size', $(this).attr('data-size'));
 
-        $image.attr('data-size', $(this).attr('data-size'));
+      $image.find('.text').html( $(this).html() );
 
-        $image.find('.text').html( $(this).html() );
+      self.Backgrounds[$el.find('.slide.current').attr('data-slide')].size = $(this).attr('data-size');
+      self.Backgrounds[$el.find('.slide.current').attr('data-slide')].label = $(this).html();
 
-        self.Backgrounds[$el.find('.slide.current').attr('data-slide')].size = $(this).attr('data-size');
-        self.Backgrounds[$el.find('.slide.current').attr('data-slide')].label = $(this).html();
-
-        $submenu.toggleClass('open');
-      } else {
-
-        self.Backgrounds[$el.find('.slide.current').attr('data-slide')] = null;
-        $el.find('canvas').removeAttr('style');
-
-        $submenu.toggleClass('open');
-      }
-
+      $submenu.toggleClass('open');
+       
       e.stopImmediatePropagation();
     });
 
@@ -800,7 +791,7 @@ Gadget.prototype.canvas = function($el, editable){
 
     // Clearing the canvas clears the drawing, background, texts, and playbacks
     if(!$(this).hasClass('disabled')) {
-
+      
       self.showAlert('.alert-clear', function($e) {
 
         var clear = $e.attr('data-clear');
@@ -812,6 +803,11 @@ Gadget.prototype.canvas = function($el, editable){
             WhiteboardPlayback = [];
             self.Playbacks[$slide.attr("data-slide")] = null;
             $slide.find('.btn.play').addClass('disabled');
+            break;
+
+          case "image":
+            self.Backgrounds[$slide.attr("data-slide")] = null;
+            $slide.find('.sketchpad').removeAttr('style');
             break;
 
           case "all":

@@ -21,8 +21,9 @@
 <div class="alert">
   <div class="alert-controls">
     <div class="alert-msg alert-clear">What would you like to clear?</div>
+    <button class="alert-clear btn btn-default" data-clear="text">Clear text</button>
+    <button class="alert-clear btn btn-default" data-clear="image">Clear image</button>
     <button class="alert-clear btn btn-default" data-clear="recording">Clear recording</button>
-    <button class="alert-clear btn btn-default" data-clear="text">Clear all text</button>
     <button class="alert-clear btn btn-alert" data-clear="all">Clear everything</button>
     <button class="alert-cancel btn btn-info">Cancel</button>
   </div>
@@ -55,7 +56,7 @@
             <ul class="sub-menu bg-size">
               <li data-size="contain">full height</li>
               <li data-size="cover">full width</li>
-              <li data-size="clear">no image</li>
+              <li data-size="0%">no image</li>
             </ul>
             <span class="icon image-size" data-size="cover"><span class="text">full width</span><i class="fa fa-caret-down"></i></span>
           </li>
