@@ -2,7 +2,7 @@
   "name": "whiteboard",
   "title": "Whiteboard",
   "description": "Whiteboard magic",
-  "version": "0.3.9",
+  "version": "0.3.11",
   "author": "Versal",
   "launcher": "iframe"
 }
