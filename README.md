@@ -7,6 +7,10 @@ Navigate to the gadget's directory and run 'versal preview' to preview and devel
 
 ## Changelog
 
+### v0.3.14
+
+* Reverting 0.3.12
+
 ### v0.3.11
 
 * Fix saving bug due to iframe launcher change
