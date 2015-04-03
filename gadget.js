@@ -9,7 +9,6 @@ var Gadget = function() {
   this.Texts = [];
   this.Backgrounds = [];
   this.attributes = {};
-  this.attributed = false;
   this.audioRecorder = null;
   this.SelectingImageFor = null;
 
@@ -68,16 +67,7 @@ Gadget.prototype.requestImg = function(img_obj, callback) {
 }
 
 Gadget.prototype.attributesChanged = function(attributes) {
- 
-  // This is firing twice, once and then again a second later
-  // The 'attributed' flag keeps the canvas from being erased
-  if(!this.attributed) {
-
-    this.attributes = attributes;
-    this.render();
-    this.attributed = true;
-  }
-
+  this.attributes = attributes;
 };
 
 // Helper function
@@ -106,36 +96,30 @@ Gadget.prototype.showAlert = function(cl, callback) {
   });
 };
 
-Gadget.prototype.toggleEdit = function(data) {
-
+Gadget.prototype.saveSlides = function() {
   var self = this;
 
-  // Loops through and store all of the slide data for each
-  if(!data.editable) {
+  var slides = [];
 
-    var slides = [];
+  $('.slides .slide').each(function(i) {
 
-    $('.slides .slide').each(function(i) {
+    var id = i+1;
 
-      var id = i+1;
+    var points = (self.Points[id] != undefined ? self.Points[id] : null);
 
-      var points = (self.Points[id] != undefined ? self.Points[id] : null);
+    var playback = (self.Playbacks[id] != undefined ? self.Playbacks[id] : null);
 
-      var playback = (self.Playbacks[id] != undefined ? self.Playbacks[id] : null);
+    var texts = (self.Texts[id] != undefined ? self.Texts[id] : null);
 
-      var texts = (self.Texts[id] != undefined ? self.Texts[id] : null);
+    var background = (self.Backgrounds[id] != undefined ? self.Backgrounds[id] : null);
 
-      var background = (self.Backgrounds[id] != undefined ? self.Backgrounds[id] : null);
+    slides.push({points: points, playback: playback, texts: texts, background: background});
+  });
 
-      slides.push({points: points, playback: playback, texts: texts, background: background});
-    });
+  player.setAttributes({slides: slides});
+};
 
-    // Save it!
-    player.setAttributes({slides: slides});
-    // Flag to prevent double saving (and overwriting)
-    this.attributed = false;
-  }
-
+Gadget.prototype.toggleEdit = function(data) {
   this.editable = data.editable
   this.render();
 };
@@ -344,6 +328,7 @@ Gadget.prototype.render = function() {
     self.canvas($el.find('.slide.current'), (self.editable || (!self.editable && learnerObject.canDraw)));
 
     e.stopImmediatePropagation();
+    self.saveSlides();
   })
   // Removing a slide
   .on("click", '.remove-slide', function(e) {
@@ -381,6 +366,7 @@ Gadget.prototype.render = function() {
     }
 
     e.stopImmediatePropagation();
+    self.saveSlides();
   })
   // Traversing slides
   .on("click", '.traverse.backward', function(e) {
@@ -437,6 +423,7 @@ Gadget.prototype.render = function() {
       $submenu.toggleClass('open');
        
       e.stopImmediatePropagation();
+      self.saveSlides();
     });
 
     e.stopImmediatePropagation();
@@ -645,6 +632,7 @@ Gadget.prototype.canvas = function($el, editable){
       WhiteboardPlayback[0].end_time = Date.now();
       WhiteboardPlayback.unshift({type:"pause", start_time: Date.now(), end_time: null});
     }
+    self.saveSlides();
   };
 
   // Manages the playback of a set of actions
@@ -717,6 +705,7 @@ Gadget.prototype.canvas = function($el, editable){
         $el.find('.btn.clear').removeClass('disabled');
 
         //self.audioRecorder.stop();
+        self.saveSlides();
 
       } else {
 
@@ -834,6 +823,7 @@ Gadget.prototype.canvas = function($el, editable){
             $slide.find('.text-box').remove();
             break;
         }
+        self.saveSlides();
       });
 
       e.stopImmediatePropagation();
@@ -994,6 +984,7 @@ Gadget.prototype.canvas = function($el, editable){
           }
 
           e.stopImmediatePropagation();
+          self.saveSlides();
         });
       }
     }
@@ -1041,6 +1032,7 @@ Gadget.prototype.canvas = function($el, editable){
     }
 
     e.stopImmediatePropagation();
+    self.saveSlides();
   });
 };
 
