@@ -1,7 +1,7 @@
 {
   "name": "whiteboard",
   "title": "Whiteboard",
-  "description": "Whiteboard magic",
+  "description": "Draw on images, write out examples, create multiple slides and much more.",
   "version": "0.3.14",
   "author": "Versal",
   "launcher": "iframe"
