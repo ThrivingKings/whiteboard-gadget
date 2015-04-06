@@ -4,5 +4,6 @@
   "description": "Draw on images, write out examples, create multiple slides and much more.",
   "version": "0.3.14",
   "author": "Versal",
-  "launcher": "iframe"
+  "launcher": "iframe",
+  "documentationUrl": "https://versal.com/c/agvdy5/learn"
 }
