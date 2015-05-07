@@ -1,0 +1,13 @@
+language: node_js
+sudo: false
+node_js:
+  - 0.12
+script:
+  - ./ci.sh
+cache:
+  directories:
+    - node_modules
+env:
+  global:
+    - secure: ODzt/4l3ERpNwDC9YFfFs575mAw3WyLIodUnR9X/ijlSYvQuuAE2Qh64nyQ5Dxn93reWNtkDChgktJlxXPCQYxKLluws5VJl5vd5UW33mgxI0b5OKCae5Dpjf8+0kK6mke/o2RPirAlQ6/C9iIgkShfmbv+vwDcAGylVRqxMKZA=
+    - secure: F89Gd1iaTlxy7RfQXHs+mSCTbWIDBrmur4TytGkG95tKzvruLmbcXHX9Az+rlYYPqgs7Mm4mFv2NpSRlO6fwugmIErl7WP3UKoYXVxz8dsR6wTvJe4SvE+6+BijGnwmBF0oPCNpqoruxL78EKSOxkgXpzmQ8jhN4xgRZR+1BZzY=

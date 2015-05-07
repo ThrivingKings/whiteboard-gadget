@@ -1,0 +1,8 @@
+{
+  "name": "whiteboard-gadget",
+  "scripts": {
+    "build": "bower install",
+    "upload": "versal upload"
+  },
+  "author": "Versal"
+}

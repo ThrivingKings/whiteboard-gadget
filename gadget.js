@@ -9,7 +9,6 @@ var Gadget = function() {
   this.Texts = [];
   this.Backgrounds = [];
   this.attributes = {};
-  this.attributed = false;
   this.audioRecorder = null;
   this.SelectingImageFor = null;
 
@@ -32,7 +31,7 @@ var Gadget = function() {
 
 // Handling of requesting an image by listening for selection then firing callback
 Gadget.prototype.requestImg = function(img_obj, callback) {
-  
+
   var self = this;
 
   player.requestAsset(img_obj);
@@ -68,16 +67,7 @@ Gadget.prototype.requestImg = function(img_obj, callback) {
 }
 
 Gadget.prototype.attributesChanged = function(attributes) {
- 
-  // This is firing twice, once and then again a second later
-  // The 'attributed' flag keeps the canvas from being erased
-  if(!this.attributed) {
-
-    this.attributes = attributes;
-    this.render();
-    this.attributed = true;
-  }
-
+  this.attributes = attributes;
 };
 
 // Helper function
@@ -106,43 +96,37 @@ Gadget.prototype.showAlert = function(cl, callback) {
   });
 };
 
-Gadget.prototype.toggleEdit = function(data) {
-
+Gadget.prototype.saveSlides = function() {
   var self = this;
 
-  // Loops through and store all of the slide data for each
-  if(!data.editable) {
+  var slides = [];
 
-    var slides = [];
+  $('.slides .slide').each(function(i) {
 
-    $('.slides .slide').each(function(i) {
+    var id = i+1;
 
-      var id = i+1;
+    var points = (self.Points[id] != undefined ? self.Points[id] : null);
 
-      var points = (self.Points[id] != undefined ? self.Points[id] : null);
+    var playback = (self.Playbacks[id] != undefined ? self.Playbacks[id] : null);
 
-      var playback = (self.Playbacks[id] != undefined ? self.Playbacks[id] : null);
+    var texts = (self.Texts[id] != undefined ? self.Texts[id] : null);
 
-      var texts = (self.Texts[id] != undefined ? self.Texts[id] : null);
+    var background = (self.Backgrounds[id] != undefined ? self.Backgrounds[id] : null);
 
-      var background = (self.Backgrounds[id] != undefined ? self.Backgrounds[id] : null);
+    slides.push({points: points, playback: playback, texts: texts, background: background});
+  });
 
-      slides.push({points: points, playback: playback, texts: texts, background: background});
-    });
+  player.setAttributes({slides: slides});
+};
 
-    // Save it!
-    player.setAttributes({slides: slides});
-    // Flag to prevent double saving (and overwriting)
-    this.attributed = false;
-  }
-
+Gadget.prototype.toggleEdit = function(data) {
   this.editable = data.editable
-  this.render();
+  this.render(data.editable);
 };
 
 // Gadget render
-Gadget.prototype.render = function() {
-  
+Gadget.prototype.render = function(editable) {
+
   var self = this;
 
   if(self.SelectingImageFor) {
@@ -176,11 +160,11 @@ Gadget.prototype.render = function() {
   }*/
 
   // Toggle elements based on settings
-  $('.js-can-draw').toggle(self.editable || learnerObject.canDraw);
-  $('.js-can-record').toggle(self.editable || learnerObject.canRecord);
+  $('.js-can-draw').toggle(editable);
+  $('.js-can-record').toggle(editable);
 
   // Initialize first slide's canvas
-  self.canvas($el.find('.slide.current'), (self.editable || (!self.editable && learnerObject.canDraw)));
+  self.canvas($el.find('.slide.current'), editable);
 
   // Load any saved slides
   if(existingSlides && existingSlides.length) {
@@ -207,7 +191,7 @@ Gadget.prototype.render = function() {
         // Prepare secondary slides by hiding and showing proper controls
         $slide = $el.find('.slide.current').clone();
 
-        self.canvas($slide, (self.editable || (!self.editable && learnerObject.canDraw)));
+        self.canvas($slide, editable);
 
         $el.find('.slides').append( $slide ).css('width', $el.find('.slides').width()+722);
 
@@ -226,7 +210,7 @@ Gadget.prototype.render = function() {
 
       // Add the stored background
       if(existingSlides[i].background != undefined && existingSlides[i].background.url != undefined) {
-        
+
         self.Backgrounds[i+1] = existingSlides[i].background;
 
         $slide.find('canvas').css('background-image', 'url('+existingSlides[i].background.url+')').css('background-size', existingSlides[i].background.size);
@@ -269,14 +253,14 @@ Gadget.prototype.render = function() {
         while(e--) {
 
           for(var p = 1; p<existingSlides[i].points[e].point.length; p++) {
-            
+
             self.Draw(
-              thiscanvas.getContext('2d'), 
-              existingSlides[i].points[e].point[p-1], 
-              existingSlides[i].points[e].point[p], 
-              existingSlides[i].points[e].point[p+1], 
-              existingSlides[i].points[e].point[p+2], 
-              existingSlides[i].points[e].stroke, 
+              thiscanvas.getContext('2d'),
+              existingSlides[i].points[e].point[p-1],
+              existingSlides[i].points[e].point[p],
+              existingSlides[i].points[e].point[p+1],
+              existingSlides[i].points[e].point[p+2],
+              existingSlides[i].points[e].stroke,
               0
             );
           }
@@ -287,7 +271,7 @@ Gadget.prototype.render = function() {
 
       $el.find('.text.total-slides').html(existingSlides.length);
     }
-    
+
     // Enabled traversing forward
     $el.find('.slides .slide').find('.traverse.forward').removeClass('disabled');
     // Except on the last slide
@@ -341,9 +325,10 @@ Gadget.prototype.render = function() {
       $(this).attr('data-slide', i+1).find('.text.current-slide').html(i+1);
     });
 
-    self.canvas($el.find('.slide.current'), (self.editable || (!self.editable && learnerObject.canDraw)));
+    self.canvas($el.find('.slide.current'), editable);
 
     e.stopImmediatePropagation();
+    self.saveSlides();
   })
   // Removing a slide
   .on("click", '.remove-slide', function(e) {
@@ -381,6 +366,7 @@ Gadget.prototype.render = function() {
     }
 
     e.stopImmediatePropagation();
+    self.saveSlides();
   })
   // Traversing slides
   .on("click", '.traverse.backward', function(e) {
@@ -435,8 +421,9 @@ Gadget.prototype.render = function() {
       self.Backgrounds[$el.find('.slide.current').attr('data-slide')].label = $(this).html();
 
       $submenu.toggleClass('open');
-       
+
       e.stopImmediatePropagation();
+      self.saveSlides();
     });
 
     e.stopImmediatePropagation();
@@ -577,7 +564,7 @@ Gadget.prototype.canvas = function($el, editable){
 
   // Drawing
   canvas.onmousemove = function(event) {
-    
+
     if (!isDrawing || Playing || !editable) return;
 
     var mouse = self.getMousePos(canvas, event);
@@ -598,7 +585,7 @@ Gadget.prototype.canvas = function($el, editable){
     var p2 = points[1];
 
     // Erasing is a different action completely
-    if(Erasing) { 
+    if(Erasing) {
 
       ctx.globalCompositeOperation = 'destination-out';
 
@@ -645,6 +632,7 @@ Gadget.prototype.canvas = function($el, editable){
       WhiteboardPlayback[0].end_time = Date.now();
       WhiteboardPlayback.unshift({type:"pause", start_time: Date.now(), end_time: null});
     }
+    self.saveSlides();
   };
 
   // Manages the playback of a set of actions
@@ -717,6 +705,7 @@ Gadget.prototype.canvas = function($el, editable){
         $el.find('.btn.clear').removeClass('disabled');
 
         //self.audioRecorder.stop();
+        self.saveSlides();
 
       } else {
 
@@ -728,17 +717,17 @@ Gadget.prototype.canvas = function($el, editable){
         /*var $audio = $('<audio>');
 
         navigator.webkitGetUserMedia({audio:true}, function(stream) {
-          
+
           window.AudioContext = window.AudioContext || window.webkitAudioContext;
           navigator.getUserMedia = navigator.getUserMedia || navigator.webkitGetUserMedia;
           window.URL = window.URL || window.webkitURL;
-          
+
           var audio_context = new AudioContext;
 
           var input = audio_context.createMediaStreamSource(stream);
-    
+
           input.connect(audio_context.destination);
-          
+
           self.audioRecorder = new Recorder(input);
           self.audioRecorder.record();
         }, function() { return; });*/
@@ -765,12 +754,12 @@ Gadget.prototype.canvas = function($el, editable){
             if(!self.Points[$el.attr("data-slide")][i].recording) {
 
               self.Draw(
-                canvas.getContext('2d'), 
-                self.Points[$el.attr("data-slide")][i].point[p-1], 
-                self.Points[$el.attr("data-slide")][i].point[p], 
-                self.Points[$el.attr("data-slide")][i].point[p+1], 
-                self.Points[$el.attr("data-slide")][i].point[p+2], 
-                self.Points[$el.attr("data-slide")][i].stroke, 
+                canvas.getContext('2d'),
+                self.Points[$el.attr("data-slide")][i].point[p-1],
+                self.Points[$el.attr("data-slide")][i].point[p],
+                self.Points[$el.attr("data-slide")][i].point[p+1],
+                self.Points[$el.attr("data-slide")][i].point[p+2],
+                self.Points[$el.attr("data-slide")][i].stroke,
                 0
               );
             }
@@ -791,7 +780,7 @@ Gadget.prototype.canvas = function($el, editable){
 
     // Clearing the canvas clears the drawing, background, texts, and playbacks
     if(!$(this).hasClass('disabled')) {
-      
+
       self.showAlert('.alert-clear', function($e) {
 
         var clear = $e.attr('data-clear');
@@ -811,7 +800,7 @@ Gadget.prototype.canvas = function($el, editable){
             break;
 
           case "all":
-            
+
             var $canvas = $('.slide.current').find('.sketchpad')[0];
             var $ctx = $canvas.getContext('2d');
 
@@ -834,6 +823,7 @@ Gadget.prototype.canvas = function($el, editable){
             $slide.find('.text-box').remove();
             break;
         }
+        self.saveSlides();
       });
 
       e.stopImmediatePropagation();
@@ -894,6 +884,7 @@ Gadget.prototype.canvas = function($el, editable){
 
       if(self.SelectingImageFor==$el.attr('data-slide') && asset.name=="slide_"+$el.attr('data-slide')+"_image") {
         $el.find('canvas').removeAttr('style').css('background-image', 'url('+data.url+')').css('background-size', data.size);
+        self.saveSlides();
         //$el.find('.clear-image').show();
       }
     });
@@ -934,7 +925,7 @@ Gadget.prototype.canvas = function($el, editable){
         $el.find('.text-busy').on("click", function(e) {
 
           if(!Adding) {
-          
+
             Adding = true;
 
             var offset = $(this).offset();
@@ -956,11 +947,11 @@ Gadget.prototype.canvas = function($el, editable){
 
             $span.hide();
             $input.show().focus().on("keyup", function(e) {
-              
+
               if(!$(this).val() && $span.html()!="empty") {
                 $span.html('empty');
                 return;
-              } 
+              }
 
               if($span.html()=="empty" && e.keyCode==8) {
 
@@ -971,7 +962,7 @@ Gadget.prototype.canvas = function($el, editable){
 
                 Adding = false;
               } else {
-                
+
                 $span.html( $(this).val() );
                 self.Texts[$el.attr('data-slide')][$text.attr('data-i')].text = $(this).val();
               }
@@ -994,6 +985,7 @@ Gadget.prototype.canvas = function($el, editable){
           }
 
           e.stopImmediatePropagation();
+          self.saveSlides();
         });
       }
     }
@@ -1012,13 +1004,13 @@ Gadget.prototype.canvas = function($el, editable){
       var $input = $me.find('.text-box-input');
 
       $span.hide();
-      
+
       $input.show().focus().on("keyup", function(e) {
-              
+
         if(!$(this).val() && $span.html()!="empty") {
           $span.html('empty');
           return;
-        } 
+        }
 
         if($span.html()=="empty" && e.keyCode==8) {
 
@@ -1027,7 +1019,7 @@ Gadget.prototype.canvas = function($el, editable){
           self.Texts.splice($me.attr('data-i'),1);
 
         } else {
-          
+
           $span.html( $(this).val() );
           self.Texts[$el.attr('data-slide')][$me.attr('data-i')].text = $(this).val();
         }
@@ -1041,6 +1033,7 @@ Gadget.prototype.canvas = function($el, editable){
     }
 
     e.stopImmediatePropagation();
+    self.saveSlides();
   });
 };
 
